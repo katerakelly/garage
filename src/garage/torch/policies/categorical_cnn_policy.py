@@ -4,10 +4,10 @@ import torch
 from torch import nn
 
 from garage.torch.modules import CategoricalCNNModule
-from garage.torch.policies.discrete_policy import DiscretePolicy
+from garage.torch.policies.stochastic_policy import StochasticPolicy
 
 
-class CategoricalCNNPolicy(DiscretePolicy):
+class CategoricalCNNPolicy(StochasticPolicy):
     """CategoricalCNNPolicy.
 
     A policy that contains a CNN and a MLP to make prediction based on
@@ -136,6 +136,8 @@ class CategoricalCNNPolicy(DiscretePolicy):
 
         Returns:
             torch.distributions.Distribution: Batch distribution of actions.
+            dict[str, torch.Tensor]: Additional agent_info, as torch Tensors.
+                Do not need to be detached, and can be on any device.
         """
         module = CategoricalCNNModule(
             input_var=observations,
@@ -158,4 +160,4 @@ class CategoricalCNNPolicy(DiscretePolicy):
             layer_normalization=self._layer_normalization)
 
         dist = module(observations)
-        return dist
+        return dist, {}
