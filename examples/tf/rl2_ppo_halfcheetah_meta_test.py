@@ -5,6 +5,8 @@ import click
 
 from garage import wrap_experiment
 from garage.envs.mujoco.half_cheetah_vel_env import HalfCheetahVelEnv
+from garage.envs.meld.meld_cheetah_vel_env import HalfCheetahVelEnv as MeldHalfCheetahVelEnv
+from garage.envs.meld.wrapper import MeldEnvWrapper
 from garage.experiment import LocalTFRunner
 from garage.experiment import task_sampler
 from garage.experiment.deterministic import set_seed
@@ -20,12 +22,16 @@ from garage.tf.policies import GaussianGRUPolicy
 @click.command()
 @click.option('--seed', default=1)
 @click.option('--max_path_length', default=100)
-@click.option('--meta_batch_size', default=10)
-@click.option('--n_epochs', default=10)
-@click.option('--episode_per_task', default=4)
+@click.option('--meta_batch_size', default=200)
+@click.option('--n_epochs', default=1000)
+@click.option('--episode_per_task', default=2)
+@click.option('--num_eval_exp_traj', default=1)
+@click.option('--num_eval_test_traj', default=1)
+@click.option('--finite_tasks', is_flag=True)
+@click.option('--meld_env', is_flag=True)
 @wrap_experiment
 def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
-                                  n_epochs, episode_per_task):
+                                  n_epochs, episode_per_task, num_eval_exp_traj, num_eval_test_traj, finite_tasks, meld_env):
     """Perform meta-testing on RL2PPO with HalfCheetah environment.
 
     Args:
@@ -41,10 +47,20 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
     """
     set_seed(seed)
     with LocalTFRunner(snapshot_config=ctxt) as runner:
-        tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
-            env=HalfCheetahVelEnv()))
+        if meld_env:
+            tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
+                env=MeldEnvWrapper(env=MeldHalfCheetahVelEnv())))
 
-        env_spec = RL2Env(env=HalfCheetahVelEnv()).spec
+            env_spec = RL2Env(env=MeldEnvWrapper(env=MeldHalfCheetahVelEnv())).spec
+        else:
+            if finite_tasks:
+                tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
+                    env=HalfCheetahVelEnv()))
+            else:
+                tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
+                    env=HalfCheetahVelEnv()))
+
+            env_spec = RL2Env(env=HalfCheetahVelEnv()).spec
         policy = GaussianGRUPolicy(name='policy',
                                    hidden_dim=64,
                                    env_spec=env_spec,
@@ -53,8 +69,8 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
         baseline = LinearFeatureBaseline(env_spec=env_spec)
 
         meta_evaluator = MetaEvaluator(test_task_sampler=tasks,
-                                       n_exploration_traj=10,
-                                       n_test_rollouts=10,
+                                       n_exploration_traj=num_eval_exp_traj,
+                                       n_test_rollouts=num_eval_test_traj,
                                        max_path_length=max_path_length,
                                        n_test_tasks=5)
 
@@ -65,16 +81,16 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
                       policy=policy,
                       baseline=baseline,
                       discount=0.99,
-                      gae_lambda=0.95,
+                      gae_lambda=1.0,
                       lr_clip_range=0.2,
                       optimizer_args=dict(
-                          batch_size=32,
-                          max_epochs=10,
+                          batch_size=max_path_length * episode_per_task * meta_batch_size,
+                          max_epochs=5,
                       ),
                       stop_entropy_gradient=True,
-                      entropy_method='max',
-                      policy_ent_coeff=0.02,
-                      center_adv=False,
+                      entropy_method='no_entropy',
+                      policy_ent_coeff=0,
+                      center_adv=True,
                       max_path_length=max_path_length * episode_per_task,
                       meta_evaluator=meta_evaluator,
                       n_epochs_per_eval=10)

@@ -20,7 +20,7 @@ from garage.tf.policies import GaussianGRUPolicy
 @click.option('--seed', default=1)
 @click.option('--max_path_length', default=100)
 @click.option('--meta_batch_size', default=10)
-@click.option('--n_epochs', default=10)
+@click.option('--n_epochs', default=10000)
 @click.option('--episode_per_task', default=4)
 @wrap_experiment
 def rl2_ppo_halfcheetah(ctxt, seed, max_path_length, meta_batch_size, n_epochs,

@@ -111,6 +111,26 @@ class ConstructEnvsSampler(TaskSampler):
         ]
 
 
+class FixedSetTaskSampler(TaskSampler):
+    '''
+    same as SetTaskSampler but tasks are fixed and sampled at init
+    '''
+    def __init__(self, env_constructor, n_tasks):
+        self._env_constructor = env_constructor
+        self._env = env_constructor()
+        self._tasks = [SetTaskUpdate(self._env_constructor, task)
+            for task in self._env.sample_tasks(n_tasks)]
+
+    @property
+    def n_tasks(self):
+        """int or None: The number of tasks if known and finite."""
+        return len(self._tasks)
+
+    def sample(self, n_tasks, with_replacement=False):
+        indices = np.random.choice(list(range(len(self._tasks))), size=n_tasks, replace=True)
+        return [self._tasks[idx] for idx in indices]
+
+
 class SetTaskSampler(TaskSampler):
     """TaskSampler where the environment can sample "task objects".
 
