@@ -28,7 +28,6 @@ class HalfCheetahVelEnv(mujoco_env.MujocoEnv):
 
     def step(self, action):
         self.step_counter += 1
-        action*=0.8
 
         xposbefore = self.sim.data.qpos[0]
         self.do_simulation(action, self.frame_skip)
@@ -36,7 +35,7 @@ class HalfCheetahVelEnv(mujoco_env.MujocoEnv):
 
         forward_vel = (xposafter - xposbefore) / self.dt
         forward_reward = -1.0 * abs(forward_vel - self.target_vel)  ### The reward is related to the target velocity
-        ctrl_cost = 0.01 * np.sum(np.square(action))
+        ctrl_cost = 0.05 * np.sum(np.square(action))
         vel_error = abs(forward_vel - self.target_vel)
 
         observation = self._get_obs()
