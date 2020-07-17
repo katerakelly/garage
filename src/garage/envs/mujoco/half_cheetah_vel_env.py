@@ -31,6 +31,7 @@ class HalfCheetahVelEnv(HalfCheetahEnvMetaBase):
 
     def __init__(self, task=None):
         super().__init__(task or {'velocity': 0.})
+        self.frame_skip = 10
 
     def step(self, action):
         """Take one step in the environment.
@@ -55,13 +56,14 @@ class HalfCheetahVelEnv(HalfCheetahEnvMetaBase):
                         Usually between 0 and 2.
 
         """
+        action*=0.8
         xposbefore = self.sim.data.qpos[0]
         self.do_simulation(action, self.frame_skip)
         xposafter = self.sim.data.qpos[0]
 
         forward_vel = (xposafter - xposbefore) / self.dt
         forward_reward = -1.0 * abs(forward_vel - self._task['velocity'])
-        ctrl_cost = 0.5 * 1e-1 * np.sum(np.square(action))
+        ctrl_cost = 1e-2 * np.sum(np.square(action))
 
         observation = self._get_obs()
         reward = forward_reward - ctrl_cost
@@ -83,6 +85,7 @@ class HalfCheetahVelEnv(HalfCheetahEnvMetaBase):
                 value between 0 and 2.
 
         """
+        np.random.seed(1337)
         velocities = self.np_random.uniform(0.0, 2.0, size=(num_tasks, ))
         tasks = [{'velocity': velocity} for velocity in velocities]
         return tasks

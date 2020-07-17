@@ -78,13 +78,15 @@ class HalfCheetahVelEnv(mujoco_env.MujocoEnv):
         '''
 
         # set seed
+        '''
         if is_eval_env:
             np.random.seed(100) #pick eval tasks as random from diff seed
         else:
             np.random.seed(101)
+        '''
 
         self.min_vel = 0
-        self.max_vel = 3
+        self.max_vel = 2
         velocities = np.random.uniform(self.min_vel, self.max_vel, size=(num_tasks,))
 
         self.possible_goals = velocities
