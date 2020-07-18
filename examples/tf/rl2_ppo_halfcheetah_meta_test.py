@@ -4,6 +4,7 @@
 import click
 
 from garage import wrap_experiment
+from garage.envs.garage_env import GarageEnv
 from garage.envs.mujoco.half_cheetah_vel_env import HalfCheetahVelEnv
 from garage.envs.meld.meld_cheetah_vel_env import HalfCheetahVelEnv as MeldHalfCheetahVelEnv
 from garage.envs.meld.wrapper import MeldEnvWrapper
@@ -48,10 +49,11 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
     set_seed(seed)
     with LocalTFRunner(snapshot_config=ctxt) as runner:
         if meld_env:
+            env = GarageEnv(MeldEnvWrapper(MeldHalfCheetahVelEnv(), image_obs=True), is_image=True)
             tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
-                env=MeldEnvWrapper(env=MeldHalfCheetahVelEnv())))
+                env=env))
 
-            env_spec = RL2Env(env=MeldEnvWrapper(env=MeldHalfCheetahVelEnv())).spec
+            env_spec = RL2Env(env=env).spec
         else:
             if finite_tasks:
                 tasks = task_sampler.SetTaskSampler(lambda: RL2Env(

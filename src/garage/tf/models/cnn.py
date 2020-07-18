@@ -27,7 +27,7 @@ def cnn(input_var,
             (1, 2) means there are two convolutional layers. The stride of the
             filter for first layer is 1 and that of the second layer is 2.
         name (str): Network name, also the variable scope.
-        padding (str): The type of padding algorithm to use,
+        padding (tuple of str): The type of padding algorithm to use for each layer,
             either 'SAME' or 'VALID'.
         hidden_nonlinearity (callable): Activation function for intermediate
             dense layer(s). It should return a tf.Tensor. Set it to
@@ -45,10 +45,10 @@ def cnn(input_var,
     """
     with tf.compat.v1.variable_scope(name):
         h = input_var
-        for index, (filter_iter, stride) in enumerate(zip(filters, strides)):
+        for index, (filter_iter, stride, pad) in enumerate(zip(filters, strides, padding)):
             _stride = [1, stride, stride, 1]
             h = _conv(h, 'h{}'.format(index), filter_iter[1], filter_iter[0],
-                      _stride, hidden_w_init, hidden_b_init, padding)
+                      _stride, hidden_w_init, hidden_b_init, pad)
             if hidden_nonlinearity is not None:
                 h = hidden_nonlinearity(h)
 

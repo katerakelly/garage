@@ -7,8 +7,9 @@ class MeldEnvWrapper(gym.Wrapper):
     '''
     wrap a MELD env for use with garage
     '''
-    def __init__(self, env, task=None):
+    def __init__(self, env, image_obs=False, task=None):
         self.env = env
+        self.image_obs = image_obs
         self._task = task or {'velocity': 0.}
         self.obs_len = len(self._get_obs())
 
@@ -20,17 +21,26 @@ class MeldEnvWrapper(gym.Wrapper):
         self._set_observation_space(observation)
 
     def _get_obs(self):
-        return self.env._get_obs().astype(np.float32)
+        if self.image_obs:
+            return self.get_image().flatten()
+        else:
+            return self.env._get_obs().astype(np.float32)
 
     def step(self, action):
         aug_obs, reward, done, infos = self.env.step(action)
         obs = aug_obs[:self.obs_len] # discard rewards and other info
         infos = {} # could convert from numpy array if needed
+        if self.image_obs:
+            obs = self._get_obs()
         return obs, reward, done, infos
 
     def reset(self):
-        aug_obs = self.env.reset()
-        return aug_obs[:self.obs_len] # discard rewards and other info
+        if self.image_obs:
+            _ = self.env.reset()
+            return self._get_obs()
+        else:
+            aug_obs = self.env.reset()
+            return aug_obs[:self.obs_len] # discard rewards and other info
 
     #### action and obs space, copied from gym cheetah env
     def _set_action_space(self):
@@ -41,7 +51,20 @@ class MeldEnvWrapper(gym.Wrapper):
 
     def _set_observation_space(self, observation):
         self.observation_space = convert_observation_to_space(observation)
+        if self.image_obs: # need to change bounds
+            low, high = 0, 255
+            self.observation_space = spaces.Box(low=low, high=high, shape=self.observation_space.shape, dtype=np.uint8)
         return self.observation_space
+
+    #### rendering settings
+    def get_image(self, width=64, height=64, camera_name='track'):
+        # use sim.render to avoid MJViewer which doesn't seem to work without display
+        img = self.env.sim.render(
+            width=width,
+            height=height,
+            camera_name=camera_name,
+        )
+        return np.flipud(img)
 
     #### task-interface
     def sample_tasks(self, num_tasks):
