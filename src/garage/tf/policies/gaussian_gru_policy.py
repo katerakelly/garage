@@ -8,7 +8,8 @@ import akro
 import numpy as np
 import tensorflow as tf
 
-from garage.tf.models import GaussianGRUModel
+from garage.tf.models.meld_cnn import MELDModel
+from garage.tf.models import Sequential
 from garage.tf.policies.policy import StochasticPolicy
 
 
@@ -63,6 +64,7 @@ class GaussianGRUPolicy(StochasticPolicy):
 
     def __init__(self,
                  env_spec,
+                 double_camera=False, # arg for MELD
                  hidden_dim=32,
                  name='GaussianGRUPolicy',
                  hidden_nonlinearity=tf.nn.tanh,
@@ -79,15 +81,16 @@ class GaussianGRUPolicy(StochasticPolicy):
                  std_share_network=False,
                  init_std=1.0,
                  layer_normalization=False,
-                 state_include_action=True):
+                 state_include_action=False):
         if not isinstance(env_spec.action_space, akro.Box):
             raise ValueError('GaussianGRUPolicy only works with '
                              'akro.Box action space, but not {}'.format(
                                  env_spec.action_space))
         super().__init__(name, env_spec)
+        # NOTE none of these GRU args have any affect!!
+        # this is flattened obs + act + rew + done
         self._obs_dim = env_spec.observation_space.flat_dim
         self._action_dim = env_spec.action_space.flat_dim
-
         self._hidden_dim = hidden_dim
         self._hidden_nonlinearity = hidden_nonlinearity
         self._hidden_w_init = hidden_w_init
@@ -106,31 +109,16 @@ class GaussianGRUPolicy(StochasticPolicy):
         self._state_include_action = state_include_action
 
         if state_include_action:
-            self._input_dim = self._obs_dim + self._action_dim
+            self._input_dim = self._obs_dim
+            self._action_dim = self._action_dim
         else:
             self._input_dim = self._obs_dim
+        self._rest_input_dim = self._action_dim + 1 + 1
+        self._conv_feat_dim = 256
 
         self._f_step_mean_std = None
 
-        self.model = GaussianGRUModel(
-            output_dim=self._action_dim,
-            hidden_dim=hidden_dim,
-            name='GaussianGRUModel',
-            hidden_nonlinearity=hidden_nonlinearity,
-            hidden_w_init=hidden_w_init,
-            hidden_b_init=hidden_b_init,
-            recurrent_nonlinearity=recurrent_nonlinearity,
-            recurrent_w_init=recurrent_w_init,
-            output_nonlinearity=output_nonlinearity,
-            output_w_init=output_w_init,
-            output_b_init=output_b_init,
-            hidden_state_init=hidden_state_init,
-            hidden_state_init_trainable=hidden_state_init_trainable,
-            layer_normalization=layer_normalization,
-            learn_std=learn_std,
-            std_share_network=std_share_network,
-            init_std=init_std)
-
+        self.model = MELDModel(self._obs_dim, self._action_dim, self._hidden_dim, double_camera=double_camera)
         self._prev_actions = None
         self._prev_hiddens = None
         self._dist = None
@@ -142,10 +130,13 @@ class GaussianGRUPolicy(StochasticPolicy):
         """Initialize policy."""
         with tf.compat.v1.variable_scope(self.name) as vs:
             self._variable_scope = vs
+            # the state input will be flattened obs + act + rew + done
+            # this must be training input var?
             state_input = tf.compat.v1.placeholder(shape=(None, None,
                                                           self._input_dim),
                                                    name='state_input',
                                                    dtype=tf.float32)
+            # and this is eval input var?
             step_input_var = tf.compat.v1.placeholder(shape=(None,
                                                              self._input_dim),
                                                       name='step_input',

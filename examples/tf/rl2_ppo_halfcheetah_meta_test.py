@@ -4,10 +4,9 @@
 import click
 
 from garage import wrap_experiment
+from garage.envs.garage_env import GarageEnv
 from garage.envs.meld.cheetah.meld_cheetah_vel import HalfCheetahVelEnv as MeldHalfCheetahVelEnv
 from garage.envs.meld.cheetah.meld_cheetah_wrapper import MeldCheetahWrapper
-from garage.envs.meld.reacher.meld_reacher import SawyerReachingEnvMultitask as MeldReacherEnv
-from garage.envs.meld.reacher.meld_reacher_wrapper import MeldReacherWrapper
 from garage.experiment import LocalTFRunner
 from garage.experiment import task_sampler
 from garage.experiment.deterministic import set_seed
@@ -52,17 +51,13 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
     """
     set_seed(seed)
     with LocalTFRunner(snapshot_config=ctxt) as runner:
-        if env == 'cheetah':
-            env = MeldCheetahWrapper(env=MeldHalfCheetahVelEnv())
-        elif env == 'reacher':
-            env = MeldReacherWrapper(env=MeldReacherEnv())
+        env = GarageEnv(MeldEnvWrapper(MeldHalfCheetahVelEnv(), image_obs=True), is_image=True)
         tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
             env=env))
         test_tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
             env=env), is_eval=True)
 
         env_spec = RL2Env(env=env).spec
-
         policy = GaussianGRUPolicy(name='policy',
                                    hidden_dim=64,
                                    env_spec=env_spec,

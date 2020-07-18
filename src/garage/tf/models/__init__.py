@@ -20,6 +20,7 @@ from garage.tf.models.module import Module, StochasticModule
 from garage.tf.models.normalized_input_mlp_model import (
     NormalizedInputMLPModel)
 from garage.tf.models.sequential import Sequential
+from garage.tf.models.meld_cnn import MELDCnnModel
 
 __all__ = [
     'BaseModel', 'CategoricalCNNModel', 'CategoricalGRUModel',
@@ -27,5 +28,5 @@ __all__ = [
     'CNNModel', 'CNNModelWithMaxPooling', 'LSTMModel', 'Model', 'Module',
     'GaussianCNNModel', 'GaussianGRUModel', 'GaussianLSTMModel',
     'GaussianMLPModel', 'GRUModel', 'MLPDuelingModel', 'MLPMergeModel',
-    'MLPModel', 'NormalizedInputMLPModel', 'Sequential', 'StochasticModule'
+    'MLPModel', 'NormalizedInputMLPModel', 'Sequential', 'StochasticModule', 'MELDCnnModel'
 ]
