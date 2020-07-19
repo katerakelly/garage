@@ -44,8 +44,8 @@ class MeldEnvWrapper(gym.Wrapper):
         return self.observation_space
 
     #### task-interface
-    def sample_tasks(self, num_tasks):
-        velocities = self.env.init_tasks(num_tasks, False) # TODO eval
+    def sample_tasks(self, num_tasks, is_eval=False):
+        velocities = self.env.init_tasks(num_tasks, is_eval)
         tasks = [{'velocity': velocity} for velocity in velocities]
         return tasks
 

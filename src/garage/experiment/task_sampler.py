@@ -144,9 +144,10 @@ class SetTaskSampler(TaskSampler):
 
     """
 
-    def __init__(self, env_constructor):
+    def __init__(self, env_constructor, is_eval=False):
         self._env_constructor = env_constructor
         self._env = env_constructor()
+        self._is_eval = is_eval
 
     @property
     def n_tasks(self):
@@ -171,7 +172,7 @@ class SetTaskSampler(TaskSampler):
         """
         return [
             SetTaskUpdate(self._env_constructor, task)
-            for task in self._env.sample_tasks(n_tasks)
+            for task in self._env.sample_tasks(n_tasks, is_eval=self._is_eval)
         ]
 
 

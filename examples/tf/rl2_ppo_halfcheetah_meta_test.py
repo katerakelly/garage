@@ -48,10 +48,13 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
     set_seed(seed)
     with LocalTFRunner(snapshot_config=ctxt) as runner:
         if meld_env:
+            env = MeldEnvWrapper(env=MeldHalfCheetahVelEnv())
             tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
-                env=MeldEnvWrapper(env=MeldHalfCheetahVelEnv())))
+                env=env))
+            test_tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
+                env=env), is_eval=True)
 
-            env_spec = RL2Env(env=MeldEnvWrapper(env=MeldHalfCheetahVelEnv())).spec
+            env_spec = RL2Env(env=env).spec
         else:
             if finite_tasks:
                 tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
@@ -68,7 +71,7 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
 
         baseline = LinearFeatureBaseline(env_spec=env_spec)
 
-        meta_evaluator = MetaEvaluator(test_task_sampler=tasks,
+        meta_evaluator = MetaEvaluator(test_task_sampler=test_tasks,
                                        n_exploration_traj=num_eval_exp_traj,
                                        n_test_rollouts=num_eval_test_traj,
                                        max_path_length=max_path_length,
