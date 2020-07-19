@@ -90,6 +90,7 @@ class GaussianCNNRegressorModel(GaussianCNNModel):
     """
 
     def __init__(self,
+                 cnn_input_dim,
                  input_shape,
                  output_dim,
                  filters,
@@ -120,7 +121,8 @@ class GaussianCNNRegressorModel(GaussianCNNModel):
                  std_output_w_init=tf.initializers.glorot_uniform(),
                  std_parameterization='exp',
                  layer_normalization=False):
-        super().__init__(output_dim=output_dim,
+        super().__init__(cnn_input_dim=cnn_input_dim,
+                         output_dim=output_dim,
                          filters=filters,
                          strides=strides,
                          padding=padding,

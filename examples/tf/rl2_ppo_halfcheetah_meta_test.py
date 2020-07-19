@@ -12,7 +12,7 @@ from garage.experiment import LocalTFRunner
 from garage.experiment import task_sampler
 from garage.experiment.deterministic import set_seed
 from garage.experiment.meta_evaluator import MetaEvaluator
-from garage.np.baselines import LinearFeatureBaseline
+from garage.tf.baselines import GaussianCNNBaseline
 from garage.sampler import LocalSampler
 from garage.tf.algos import RL2PPO
 from garage.tf.algos.rl2 import RL2Env
@@ -68,7 +68,24 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
                                    env_spec=env_spec,
                                    state_include_action=False)
 
-        baseline = LinearFeatureBaseline(env_spec=env_spec)
+        # same CNN encoder as in the policy
+        base_depth = 32
+        layers = []
+        layers.append((base_depth, (5, 5)))
+        layers.append((4 * base_depth, (3, 3)))
+        layers.append((4 * base_depth, (3, 3)))
+        layers.append((8 * base_depth, (3, 3)))
+        layers.append((8 * base_depth, (4, 4)))
+        strides = (2, 2, 2, 2, 1)
+        padding = ("SAME", "SAME", "SAME", "SAME", "VALID")
+        baseline = GaussianCNNBaseline(
+                env_spec=env_spec,
+                regressor_args=dict(
+                    filters=layers,
+                    strides=strides,
+                    padding=padding,
+                    hidden_sizes=[32],
+                    ))
 
         meta_evaluator = MetaEvaluator(test_task_sampler=tasks,
                                        n_exploration_traj=num_eval_exp_traj,

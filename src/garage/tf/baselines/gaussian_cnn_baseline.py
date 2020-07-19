@@ -28,6 +28,7 @@ class GaussianCNNBaseline(Baseline):
             regressor_args=None,
             name='GaussianCNNBaseline',
     ):
+        '''
         if not isinstance(env_spec.observation_space, akro.Box) or \
                 not len(env_spec.observation_space.shape) in (2, 3):
             raise ValueError(
@@ -37,12 +38,15 @@ class GaussianCNNBaseline(Baseline):
                     type(self).__name__,
                     type(env_spec.observation_space).__name__,
                     env_spec.observation_space.shape))
+        '''
 
         super().__init__(env_spec)
         if regressor_args is None:
             regressor_args = dict()
-
+        # CNN takes only image not the rest of the obs
+        cnn_input_shape = env_spec.observation_space.flat_dim - env_spec.action_space.flat_dim - 1 - 1
         self._regressor = GaussianCNNRegressor(
+            cnn_input_shape,
             input_shape=(env_spec.observation_space.shape),
             output_dim=1,
             subsample_factor=subsample_factor,

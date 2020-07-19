@@ -96,6 +96,7 @@ class GaussianCNNRegressor(StochasticRegressor):
     """
 
     def __init__(self,
+                 cnn_input_dim,
                  input_shape,
                  output_dim,
                  filters,
@@ -150,6 +151,7 @@ class GaussianCNNRegressor(StochasticRegressor):
                 self._optimizer = make_optimizer(optimizer, **optimizer_args)
 
         self.model = GaussianCNNRegressorModel(
+            cnn_input_dim=cnn_input_dim,
             input_shape=input_shape,
             output_dim=output_dim,
             filters=filters,

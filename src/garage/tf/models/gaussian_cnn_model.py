@@ -90,6 +90,7 @@ class GaussianCNNModel(Model):
     """
 
     def __init__(self,
+                 cnn_input_dim,
                  output_dim,
                  filters,
                  strides,
@@ -121,6 +122,7 @@ class GaussianCNNModel(Model):
                  layer_normalization=False):
         # Network parameters
         super().__init__(name)
+        self._cnn_input_dim = cnn_input_dim
         self._output_dim = output_dim
         self._filters = filters
         self._strides = strides
@@ -236,7 +238,9 @@ class GaussianCNNModel(Model):
             else:
                 # separate MLPs for mean and std networks
                 # mean network
-                mean_conv = cnn(input_var=state_input,
+                cnn_input = tf.gather(state_input, list(range(self._cnn_input_dim)), axis=-1)
+                cnn_input = tf.reshape(cnn_input, (-1, 64, 64, 3))
+                mean_conv = cnn(cnn_input,
                                 filters=self._filters,
                                 hidden_nonlinearity=self._hidden_nonlinearity,
                                 hidden_w_init=self._hidden_w_init,
@@ -245,8 +249,10 @@ class GaussianCNNModel(Model):
                                 padding=self._padding,
                                 name='mean_cnn')
 
+                rest_input = tf.gather(state_input, list(range(self._cnn_input_dim, state_input.shape[-1])))
+                mlp_input = tf.concat([mean_conv, rest_input], axis=-1)
                 mean_network = mlp(
-                    mean_conv,
+                    mlp_input,
                     output_dim=action_dim,
                     hidden_sizes=self._hidden_sizes,
                     hidden_nonlinearity=self._hidden_nonlinearity,
