@@ -99,4 +99,4 @@ class MeldCheetahWrapper(gym.Wrapper):
             state (dict): Unpickled state of this object.
 
         """
-        self.__init__(task=state['task'])
+        self.__init__(env=self.env, task=state['task'])

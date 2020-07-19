@@ -9,6 +9,7 @@ from garage.envs.meld.cheetah.meld_cheetah_vel import HalfCheetahVelEnv as MeldH
 from garage.envs.meld.cheetah.meld_cheetah_wrapper import MeldCheetahWrapper
 from garage.experiment import LocalTFRunner
 from garage.experiment import task_sampler
+from garage.experiment.experiment import ExperimentContext
 from garage.experiment.deterministic import set_seed
 from garage.experiment.meta_evaluator import MetaEvaluator
 from garage.np.baselines import LinearFeatureBaseline
@@ -50,6 +51,7 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
 
     """
     set_seed(seed)
+    ctxt = ExperimentContext(snapshot_dir='', snapshot_mode='none', snapshot_gap='')
     with LocalTFRunner(snapshot_config=ctxt) as runner:
         env = GarageEnv(MeldEnvWrapper(MeldHalfCheetahVelEnv(), image_obs=True), is_image=True)
         tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
