@@ -45,7 +45,14 @@ class MeldEnvWrapper(gym.Wrapper):
 
     #### task-interface
     def sample_tasks(self, num_tasks, is_eval=False):
-        velocities = self.env.init_tasks(num_tasks, is_eval)
+        num_train_tasks = 20 # match MELD
+        if is_eval or num_tasks < num_train_tasks:
+            velocities = self.env.init_tasks(num_tasks, is_eval)
+        else:
+            velocities = self.env.init_tasks(num_train_tasks, is_eval)
+            # sample with replacement to get to total number of tasks needed
+            samples = np.random.choice(velocities, num_tasks - num_train_tasks, replace=True)
+            velocities = np.concatenate([samples, velocities]) # make sure every task is in there at least once
         tasks = [{'velocity': velocity} for velocity in velocities]
         return tasks
 

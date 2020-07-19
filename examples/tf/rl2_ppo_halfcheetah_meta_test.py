@@ -75,7 +75,7 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
                                        n_exploration_traj=num_eval_exp_traj,
                                        n_test_rollouts=num_eval_test_traj,
                                        max_path_length=max_path_length,
-                                       n_test_tasks=5)
+                                       n_test_tasks=10)
 
         algo = RL2PPO(rl2_max_path_length=max_path_length,
                       meta_batch_size=meta_batch_size,
