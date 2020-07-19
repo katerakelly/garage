@@ -56,7 +56,6 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
             env=env))
         test_tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
             env=env), is_eval=True)
-
         env_spec = RL2Env(env=env).spec
         policy = GaussianGRUPolicy(name='policy',
                                    hidden_dim=64,
