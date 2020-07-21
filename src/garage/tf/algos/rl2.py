@@ -316,7 +316,11 @@ class RL2(MetaRLAlgorithm, abc.ABC):
         last_return = None
 
         for _ in runner.step_epochs():
+            # enable logging only when evaluating on meta-test tasks
+            # for more sensible visualization
+            runner.enable_logging = False
             if runner.step_itr % self._n_epochs_per_eval == 0:
+                runner.enable_logging = True
                 if self._meta_evaluator is not None:
                     self._meta_evaluator.evaluate(self)
             runner.step_path = runner.obtain_samples(
