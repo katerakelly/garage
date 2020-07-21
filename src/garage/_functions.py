@@ -135,13 +135,14 @@ def log_performance(itr, batch, discount, prefix='Evaluation'):
     returns = []
     undiscounted_returns = []
     completion = []
-    success = []
+    scores, final_scores = [], []
     for trajectory in batch.split():
         returns.append(discount_cumsum(trajectory.rewards, discount))
         undiscounted_returns.append(sum(trajectory.rewards))
         completion.append(float(trajectory.terminals.any()))
-        if 'success' in trajectory.env_infos:
-            success.append(float(trajectory.env_infos['success'].any()))
+        if 'score' in trajectory.env_infos:
+            scores.append(np.mean(trajectory.env_infos['score']))
+            final_scores.append(trajectory.env_infos['score'][-1])
 
     average_discounted_return = np.mean([rtn[0] for rtn in returns])
 
@@ -155,7 +156,7 @@ def log_performance(itr, batch, discount, prefix='Evaluation'):
         tabular.record('MaxReturn', np.max(undiscounted_returns))
         tabular.record('MinReturn', np.min(undiscounted_returns))
         tabular.record('CompletionRate', np.mean(completion))
-        if success:
-            tabular.record('SuccessRate', np.mean(success))
+        tabular.record('AverageScore', np.mean(scores))
+        tabular.record('AverageFinalScore', np.mean(final_scores))
 
     return undiscounted_returns
