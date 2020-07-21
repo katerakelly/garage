@@ -4,9 +4,10 @@
 import click
 
 from garage import wrap_experiment
-from garage.envs.mujoco.half_cheetah_vel_env import HalfCheetahVelEnv
-from garage.envs.meld.meld_cheetah_vel_env import HalfCheetahVelEnv as MeldHalfCheetahVelEnv
-from garage.envs.meld.wrapper import MeldEnvWrapper
+from garage.envs.meld.cheetah.meld_cheetah_vel import HalfCheetahVelEnv as MeldHalfCheetahVelEnv
+from garage.envs.meld.cheetah.meld_cheetah_wrapper import MeldCheetahWrapper
+from garage.envs.meld.reacher.meld_reacher import SawyerReachingEnvMultitask as MeldReacherEnv
+from garage.envs.meld.reacher.meld_reacher_wrapper import MeldReacherWrapper
 from garage.experiment import LocalTFRunner
 from garage.experiment import task_sampler
 from garage.experiment.deterministic import set_seed
@@ -18,20 +19,24 @@ from garage.tf.algos.rl2 import RL2Env
 from garage.tf.algos.rl2 import RL2Worker
 from garage.tf.policies import GaussianGRUPolicy
 
+## MELD settings
+# cheetah: path_length: 50, train_tasks: 20, eval_tasks: 10
+# reacher: path_length: 40, train_tasks: 60, eval_tasks: 10
+# peg: path_length: 40, train_tasks: 30, eval_tasks: 10
+
 
 @click.command()
 @click.option('--seed', default=1)
-@click.option('--max_path_length', default=100)
+@click.option('--max_path_length', default=40)
 @click.option('--meta_batch_size', default=200)
-@click.option('--n_epochs', default=1000)
+@click.option('--n_epochs', default=500)
 @click.option('--episode_per_task', default=2)
 @click.option('--num_eval_exp_traj', default=1)
 @click.option('--num_eval_test_traj', default=1)
-@click.option('--finite_tasks', is_flag=True)
-@click.option('--meld_env', is_flag=True)
-@wrap_experiment
+@click.option('--env', default='cheetah')
+@wrap_experiment(prefix='rl2-ppo-state', archive_launch_repo=False)
 def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
-                                  n_epochs, episode_per_task, num_eval_exp_traj, num_eval_test_traj, finite_tasks, meld_env):
+                                  n_epochs, episode_per_task, num_eval_exp_traj, num_eval_test_traj, env):
     """Perform meta-testing on RL2PPO with HalfCheetah environment.
 
     Args:
@@ -47,23 +52,17 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
     """
     set_seed(seed)
     with LocalTFRunner(snapshot_config=ctxt) as runner:
-        if meld_env:
-            env = MeldEnvWrapper(env=MeldHalfCheetahVelEnv())
-            tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
-                env=env))
-            test_tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
-                env=env), is_eval=True)
+        if env == 'cheetah':
+            env = MeldCheetahWrapper(env=MeldHalfCheetahVelEnv())
+        elif env == 'reacher':
+            env = MeldReacherWrapper(env=MeldReacherEnv())
+        tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
+            env=env))
+        test_tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
+            env=env), is_eval=True)
 
-            env_spec = RL2Env(env=env).spec
-        else:
-            if finite_tasks:
-                tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
-                    env=HalfCheetahVelEnv()))
-            else:
-                tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
-                    env=HalfCheetahVelEnv()))
+        env_spec = RL2Env(env=env).spec
 
-            env_spec = RL2Env(env=HalfCheetahVelEnv()).spec
         policy = GaussianGRUPolicy(name='policy',
                                    hidden_dim=64,
                                    env_spec=env_spec,
