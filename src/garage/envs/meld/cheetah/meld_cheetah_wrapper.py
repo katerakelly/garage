@@ -3,7 +3,7 @@ from gym import spaces
 from gym.envs.mujoco.mujoco_env import convert_observation_to_space
 import numpy as np
 
-class MeldEnvWrapper(gym.Wrapper):
+class MeldCheetahWrapper(gym.Wrapper):
     '''
     wrap a MELD env for use with garage
     '''
@@ -25,7 +25,7 @@ class MeldEnvWrapper(gym.Wrapper):
     def step(self, action):
         aug_obs, reward, done, infos = self.env.step(action)
         obs = aug_obs[:self.obs_len] # discard rewards and other info
-        infos = {} # could convert from numpy array if needed
+        infos = {'score': infos[0], 'task_name': str(self.env.target_vel)}
         return obs, reward, done, infos
 
     def reset(self):
