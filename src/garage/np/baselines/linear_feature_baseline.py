@@ -50,7 +50,9 @@ class LinearFeatureBaseline(Baseline):
             numpy.ndarray: Extracted features.
 
         """
-        obs = np.clip(path['observations'], self.lower_bound, self.upper_bound)
+        #obs = np.clip(path['observations'], self.lower_bound, self.upper_bound)
+        # NOTE changing this to true state stored in env_info
+        obs = np.clip(path['env_infos']['state'], self.lower_bound, self.upper_bound)
         length = len(path['rewards'])
         al = np.arange(length).reshape(-1, 1) / 100.0
         return np.concatenate(

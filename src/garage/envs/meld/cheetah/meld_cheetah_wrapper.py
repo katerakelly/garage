@@ -29,7 +29,7 @@ class MeldCheetahWrapper(gym.Wrapper):
     def step(self, action):
         aug_obs, reward, done, infos = self.env.step(action)
         obs = aug_obs[:self.obs_len] # discard rewards and other info
-        infos = {'score': infos[0], 'task_name': str(self.env.target_vel)}
+        infos = {'score': infos[0], 'task_name': str(self.env.target_vel), 'state': aug_obs}
         if self.image_obs:
             obs = self._get_obs()
         return obs, reward, done, infos
