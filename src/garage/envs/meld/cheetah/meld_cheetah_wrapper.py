@@ -16,6 +16,10 @@ class MeldCheetahWrapper(gym.Wrapper):
         # NOTE set action and obs spaces, copied from gym cheetah env
         self._set_action_space()
         action = self.action_space.sample()
+        self.action_dim = len(action)
+
+        self.reset()
+
         observation, _reward, done, _info = self.step(action)
         assert not done
         self._set_observation_space(observation)
@@ -29,15 +33,23 @@ class MeldCheetahWrapper(gym.Wrapper):
         return img
 
     def step(self, action):
+        # since env_infos is not returned in reset(), return the previous timesteps's features
+        prev_state = self._get_obs()
+        rl2obs = np.concatenate([prev_state, self.prev_action, [self.prev_reward], [self.prev_done]])
         aug_obs, reward, done, infos = self.env.step(action)
         obs = aug_obs[:self.obs_len] # discard rewards and other info
-        rl2_obs = np.concatenate([obs, action, np.array([reward, done])]) # for the baseline
-        infos = {'score': infos[0], 'task_name': str(self.env.target_vel), 'state': rl2_obs}
+        self.prev_action = action
+        self.prev_reward = reward
+        self.prev_done = done
+        infos = {'score': infos[0], 'task_name': str(self.env.target_vel), 'state': rl2obs}
         if self.image_obs:
             img = self._get_image_obs()
         return img, reward, done, infos
 
     def reset(self):
+        self.prev_action = np.zeros(self.action_dim)
+        self.prev_reward = 0
+        self.prev_done = 0
         if self.image_obs:
             _ = self.env.reset()
             return self._get_image_obs()
