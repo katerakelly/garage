@@ -27,7 +27,8 @@ class MeldCheetahWrapper(gym.Wrapper):
     def step(self, action):
         aug_obs, reward, done, infos = self.env.step(action)
         obs = aug_obs[:self.obs_len] # discard rewards and other info
-        infos = {'score': infos[0], 'task_name': str(self.env.target_vel), 'state': aug_obs}
+        rl2_obs = np.concatenate([obs, action, np.array([reward, done])]) # for the baseline
+        infos = {'score': infos[0], 'task_name': str(self.env.target_vel), 'state': rl2_obs}
         if self.image_obs:
             obs = self.get_image().astype(np.float32).flatten()
         return obs, reward, done, infos
@@ -66,7 +67,7 @@ class MeldCheetahWrapper(gym.Wrapper):
 
     #### task-interface
     def sample_tasks(self, num_tasks, is_eval=False):
-        num_train_tasks = 20 # match MELD
+        num_train_tasks = 1 # match MELD
         if is_eval or num_tasks < num_train_tasks:
             velocities = self.env.init_tasks(num_tasks, is_eval)
         else:
