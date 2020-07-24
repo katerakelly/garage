@@ -43,7 +43,6 @@ class MELDModel(Model):
     """ Feature extractor + GRU Policy """
     def __init__(self, obs_dim, act_dim, hidden_dim=32, double_camera=False, name='MELDModel'):
         super().__init__(name)
-            act_dim = tuple([act_dim])
         self._obs_dim = obs_dim
         self._action_dim = act_dim
         self._rest_input_dim = self._action_dim + 1 + 1
