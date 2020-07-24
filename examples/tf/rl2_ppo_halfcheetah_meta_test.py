@@ -53,7 +53,8 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
     set_seed(seed)
     ctxt = ExperimentContext(snapshot_dir='', snapshot_mode='none', snapshot_gap='')
     with LocalTFRunner(snapshot_config=ctxt) as runner:
-        env = GarageEnv(MeldCheetahWrapper(MeldHalfCheetahVelEnv(), image_obs=True), is_image=True)
+        # handle pixel normalization ourselves in the env!
+        env = GarageEnv(MeldCheetahWrapper(MeldHalfCheetahVelEnv(), image_obs=True), is_image=False)
         tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
             env=env))
         test_tasks = task_sampler.SetTaskSampler(lambda: RL2Env(

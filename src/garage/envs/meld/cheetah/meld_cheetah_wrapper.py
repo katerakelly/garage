@@ -24,19 +24,23 @@ class MeldCheetahWrapper(gym.Wrapper):
         ''' true underlying state '''
         return self.env._get_obs().astype(np.float32)
 
+    def _get_image_obs(self):
+        img = self.get_image().flatten().astype(np.float32) / 255.
+        return img
+
     def step(self, action):
         aug_obs, reward, done, infos = self.env.step(action)
         obs = aug_obs[:self.obs_len] # discard rewards and other info
         rl2_obs = np.concatenate([obs, action, np.array([reward, done])]) # for the baseline
         infos = {'score': infos[0], 'task_name': str(self.env.target_vel), 'state': rl2_obs}
         if self.image_obs:
-            obs = self.get_image().astype(np.float32).flatten()
-        return obs, reward, done, infos
+            img = self._get_image_obs()
+        return img, reward, done, infos
 
     def reset(self):
         if self.image_obs:
             _ = self.env.reset()
-            return self.get_image().astype(np.float32).flatten()
+            return self._get_image_obs()
         else:
             aug_obs = self.env.reset()
             return aug_obs[:self.obs_len] # discard rewards and other info
@@ -51,7 +55,7 @@ class MeldCheetahWrapper(gym.Wrapper):
     def _set_observation_space(self, observation):
         self.observation_space = convert_observation_to_space(observation)
         if self.image_obs: # need to change bounds
-            low, high = 0, 255
+            low, high = 0.0, 1.0
             self.observation_space = spaces.Box(low=low, high=high, shape=self.observation_space.shape, dtype=np.uint8)
         return self.observation_space
 
