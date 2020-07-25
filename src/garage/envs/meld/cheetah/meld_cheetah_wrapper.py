@@ -83,7 +83,7 @@ class MeldCheetahWrapper(gym.Wrapper):
 
     #### task-interface
     def sample_tasks(self, num_tasks, is_eval=False):
-        num_train_tasks = 1 # match MELD
+        num_train_tasks = 20 # match MELD
         if is_eval or num_tasks < num_train_tasks:
             velocities = self.env.init_tasks(num_tasks, is_eval)
         else:
