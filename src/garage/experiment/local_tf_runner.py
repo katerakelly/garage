@@ -81,9 +81,12 @@ class LocalTFRunner(LocalRunner):
 
     """
 
-    def __init__(self, snapshot_config, sess=None, max_cpus=1):
+    def __init__(self, snapshot_config, sess=None, max_cpus=1, gpu=0):
         super().__init__(snapshot_config=snapshot_config, max_cpus=max_cpus)
-        self.sess = sess or tf.compat.v1.Session()
+        # NOTE adding gpu specification here
+        config = tf.compat.v1.ConfigProto()
+        config.gpu_options.visible_device_list = str(gpu)
+        self.sess = sess or tf.compat.v1.Session(config=config)
         self.sess_entered = False
 
     def __enter__(self):

@@ -36,9 +36,10 @@ from garage.tf.policies import GaussianGRUPolicy
 @click.option('--num_eval_exp_traj', default=1)
 @click.option('--num_eval_test_traj', default=1)
 @click.option('--env', default='cheetah')
+@click.option('--gpu', default=0)
 @wrap_experiment(prefix='rl2-ppo-image', archive_launch_repo=False)
 def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
-                                  n_epochs, episode_per_task, num_eval_exp_traj, num_eval_test_traj, env):
+        n_epochs, episode_per_task, num_eval_exp_traj, num_eval_test_traj, env, gpu):
     """Perform meta-testing on RL2PPO with HalfCheetah environment.
 
     Args:
@@ -54,7 +55,7 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
     """
     set_seed(seed)
     ctxt = ExperimentContext(snapshot_dir='', snapshot_mode='none', snapshot_gap='')
-    with LocalTFRunner(snapshot_config=ctxt) as runner:
+    with LocalTFRunner(snapshot_config=ctxt, gpu=gpu) as runner:
         # handle pixel normalization ourselves in the env!
         if env == 'cheetah':
             env = GarageEnv(MeldCheetahWrapper(MeldHalfCheetahVelEnv(), image_obs=True), is_image=False)
