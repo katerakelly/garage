@@ -34,7 +34,7 @@ class SawyerPegShelfEnvMultitask(mujoco_env.MujocoEnv):
                 xml_path = os.path.join(SCRIPT_DIR, 'assets/sawyer_shelf_placing_posCtrl.xml')
         else:
             print("creating a multiple weight shelf env")
-            print(f"\nControl mode: {action_mode}\n")
+            print("\nControl mode: {}\n".format(action_mode))
             print("xml path:", xml_path)
 
 
@@ -257,7 +257,7 @@ class SawyerPegShelfEnvMultitask(mujoco_env.MujocoEnv):
             self.site_id_mug = self.model.site_name2id('mugSite0') # all env will have at least one mug
             self.site_id_mug_top = self.model.site_name2id('mugSite0_top')
         else:
-            mug_site_name = f"mugSite{self.curr_idx}"
+            mug_site_name = "mugSite{}".format(self.curr_idx)
             self.site_id_mug = self.model.site_name2id(mug_site_name)
             self.site_id_mug_top = self.model.site_name2id(mug_site_name + "_top")
 
@@ -405,7 +405,7 @@ class SawyerPegShelfEnvMultitask(mujoco_env.MujocoEnv):
         angles[idx_start:idx_end] = self.init_mug_pose.copy()
         self.set_state(angles, velocities)  # this sets qpos and qvel + calls sim.forward
 
-        mug_body_name = f"mug{self.curr_idx}"
+        mug_body_name = "mug{}".format(self.curr_idx)
         # print("moved", mug_body_name)
         return
 
