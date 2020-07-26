@@ -43,8 +43,8 @@ class MeldCheetahWrapper(gym.Wrapper):
         self.prev_done = done
         infos = {'score': infos[0], 'task_name': str(self.env.target_vel), 'state': rl2obs}
         if self.image_obs:
-            img = self._get_image_obs()
-        return img, reward, done, infos
+            obs = self._get_image_obs()
+        return obs, reward, done, infos
 
     def reset(self):
         self.prev_action = np.zeros(self.action_dim)
