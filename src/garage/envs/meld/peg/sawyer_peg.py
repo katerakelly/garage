@@ -5,7 +5,6 @@ from gym.spaces import Dict, Box
 import gym
 import os
 
-SCRIPT_DIR = os.path.dirname(__file__)
 from garage.envs.meld.reacher.sawyer_reacher import SawyerReachingEnv
 
 ##################################################################################################
@@ -24,7 +23,7 @@ class SawyerPegInsertionEnv(SawyerReachingEnv):
         self.body_id_box = 0
 
         if xml_path is None:
-            xml_path = os.path.join(SCRIPT_DIR, 'assets/sawyer_peg_insertion.xml')
+            xml_path = 'peg/sawyer_peg_insertion.xml'
         if goal_site_name is None:
             goal_site_name = 'goal_insert_site'
         super(SawyerPegInsertionEnv, self).__init__(xml_path=xml_path, goal_site_name=goal_site_name, action_mode=action_mode, *args, **kwargs)
@@ -69,7 +68,7 @@ class SawyerPegInsertionEnvMultitask(SawyerPegInsertionEnv):
     def __init__(self, xml_path=None, goal_site_name=None, box_site_name=None, action_mode='joint_delta_position', *args, **kwargs):
 
         if xml_path is None:
-            xml_path = os.path.join(SCRIPT_DIR, 'assets/sawyer_peg_insertion.xml')
+            xml_path = 'peg/assets/sawyer_peg_insertion.xml'
         if goal_site_name is None:
             goal_site_name = 'goal_insert_site'
         if box_site_name is None:
@@ -190,7 +189,7 @@ class SawyerPegInsertionEnv4Box(SawyerPegInsertionEnvMultitask):
 
         # init env
         if xml_path is None:
-            xml_path = os.path.join(SCRIPT_DIR, 'assets/sawyer_peg_insertion_4box.xml')
+            xml_path = 'peg/assets/sawyer_peg_insertion_4box.xml'
         if goal_site_name is None:
             goal_site_name = 'goal_insert_site1'
         if box_site_name is None:

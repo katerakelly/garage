@@ -5,8 +5,6 @@ import numpy as np
 from PIL import Image
 from gym.envs.mujoco.mujoco_env import convert_observation_to_space
 
-SCRIPT_DIR = os.path.dirname(__file__)
-
 
 class MeldSawyerWrapper(gym.Wrapper):
     '''
@@ -235,7 +233,7 @@ class MeldShelfWrapper(MeldSawyerWrapper):
 
     def sample_tasks(self, num_tasks, is_eval=False):
         # NOTE loading pre-generated tasks here
-        all_tasks = np.load(os.path.join(SCRIPT_DIR, 'shelf', 'train40_eval10tasks.npy'))
+        all_tasks = np.load(os.path.join('/home/rakelly/code/garage/src/garage/envs/meld', 'shelf', 'train40_eval10tasks.npy'))
         # NOTE for train and test tasks to not overlap, must be 40 and 10
         if is_eval:
             tasks = all_tasks[-num_tasks:]

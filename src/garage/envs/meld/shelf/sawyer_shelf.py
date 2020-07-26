@@ -6,14 +6,13 @@ import gym
 import os
 from gym.envs.mujoco import mujoco_env
 
-SCRIPT_DIR = os.path.dirname(__file__)
 
 class SawyerPegShelfEnvMultitask(mujoco_env.MujocoEnv):
     '''
     Inserting a peg into a box (which is at a fixed location)
     '''
 
-    def __init__(self, xml_path=os.path.join(SCRIPT_DIR, 'assets', 'train40_eval10tasks.xml'), box_site_name=None,
+    def __init__(self, xml_path='train40_eval10tasks.xml', box_site_name=None,
                  action_mode='joint_delta_position', task_mode='weight', *args, **kwargs):
         assert action_mode in ["joint_position", "joint_delta_position", "torque"]
         assert task_mode in ["weight", "position"]
@@ -28,10 +27,10 @@ class SawyerPegShelfEnvMultitask(mujoco_env.MujocoEnv):
             print("creating a sample shelf env, for generating tasks")
             if action_mode == "torque":
                 print("torque control")
-                xml_path = os.path.join(SCRIPT_DIR, 'assets/sawyer_shelf_placing_torqueCtrl.xml')
+                xml_path = os.path.join('assets/sawyer_shelf_placing_torqueCtrl.xml')
             else:
                 print("pos control")
-                xml_path = os.path.join(SCRIPT_DIR, 'assets/sawyer_shelf_placing_posCtrl.xml')
+                xml_path = os.path.join('assets/sawyer_shelf_placing_posCtrl.xml')
         else:
             print("creating a multiple weight shelf env")
             print("\nControl mode: {}\n".format(action_mode))
@@ -58,7 +57,7 @@ class SawyerPegShelfEnvMultitask(mujoco_env.MujocoEnv):
 
         # create the env
         self.startup = True
-        mujoco_env.MujocoEnv.__init__(self, xml_path,
+        mujoco_env.MujocoEnv.__init__(self, os.path.join('/home/rakelly/code/garage/src/garage/envs/meld/shelf/assets', xml_path),
                                       self.frame_skip)  # self.model.opt.timestep is 0.0025 (w/o frameskip)
         self.startup = False
 

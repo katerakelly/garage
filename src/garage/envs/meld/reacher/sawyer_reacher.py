@@ -6,8 +6,6 @@ import gym
 from gym.envs.mujoco import mujoco_env
 import os
 
-SCRIPT_DIR = os.path.dirname(__file__)
-
 ##################################################################
 ##################################################################
 ##################################################################
@@ -37,7 +35,7 @@ class SawyerReachingEnv(mujoco_env.MujocoEnv):
         self.num_joint_dof = 7
         self.frame_skip = 100
         if xml_path is None:
-            xml_path = os.path.join(SCRIPT_DIR, 'assets/sawyer_reach.xml')
+            xml_path = 'reacher/assets/sawyer_reach.xml'
         if goal_site_name is None:
             goal_site_name = 'goal_reach_site'
         self.body_id_ee = 0
@@ -53,7 +51,7 @@ class SawyerReachingEnv(mujoco_env.MujocoEnv):
 
         # create the env
         self.startup = True
-        mujoco_env.MujocoEnv.__init__(self, xml_path, self.frame_skip) # self.model.opt.timestep is 0.0025 (w/o frameskip)
+        mujoco_env.MujocoEnv.__init__(self, os.path.join('/home/rakelly/code/garage/src/garage/envs/meld/', xml_path), self.frame_skip) # self.model.opt.timestep is 0.0025 (w/o frameskip)
         self.startup = False
 
         # initial position of joints
