@@ -14,7 +14,7 @@ MJKEY_PATH ?= ${HOME}/.mujoco/mjkey.txt
 
 
 build-test: TAG ?= rlworkgroup/garage-test
-build-test: docker/Dockerfile
+build-test: assert-docker-version docker/Dockerfile
 	docker build \
 		-f docker/Dockerfile \
 		--cache-from rlworkgroup/garage-test:latest \
@@ -41,9 +41,11 @@ test: build-test
 docs:  ## Build HTML documentation
 docs:
 	@pushd docs && make html && popd
+	@python -c 'import os, webbrowser; webbrowser.open("file://" + os.path.realpath("docs/_build/html/index.html"))'
 
-ci-job-precommit: assert-docker docs
+ci-job-precommit: assert-docker
 	scripts/travisci/check_precommit.sh
+	@pushd docs && make doctest clean && popd
 
 ci-job-normal: assert-docker
 	[ ! -f $(MJKEY_PATH) ] || mv $(MJKEY_PATH) $(MJKEY_PATH).bak
@@ -104,7 +106,7 @@ ci-job-verify-envs-conda:
 	$(CONDA) init
 	# Useful for debugging any issues with conda
 	$(CONDA) info -a
-	$(CONDA) create -n garage-ci python=3.5 pip -y
+	$(CONDA) create -n garage-ci python=3.6 pip -y
 	$(GARAGE_BIN)/pip install --upgrade pip setuptools
 	$(GARAGE_BIN)/pip install dist/garage.tar.gz[all,dev]
 	# pylint will verify all imports work
@@ -118,9 +120,9 @@ ci-job-verify-envs-pipenv: export VIRTUAL_ENV=
 ci-job-verify-envs-pipenv: export PIPENV_MAX_RETRIES=2  # number of retries for network requests. Default is 0
 ci-job-verify-envs-pipenv:
 	touch $(MJKEY_PATH)
-	pip install --upgrade pip setuptools
-	pip install pipenv
-	pipenv --python=3.5
+	pip3 install --upgrade pip setuptools
+	pip3 install pipenv
+	pipenv --python=3.6
 	pipenv install dist/garage.tar.gz[all,dev]
 	pipenv graph
 	# pylint will verify all imports work
@@ -129,19 +131,20 @@ ci-job-verify-envs-pipenv:
 ci-deploy-docker: assert-travis
 	echo "${DOCKER_API_KEY}" | docker login -u "${DOCKER_USERNAME}" \
 		--password-stdin
+	docker tag "${TAG}" rlworkgroup/garage-ci:latest
 	docker push rlworkgroup/garage-ci
 
 build-ci: TAG ?= rlworkgroup/garage-ci:latest
-build-ci: docker/Dockerfile
+build-ci: assert-docker-version docker/Dockerfile
 	docker build \
-		--cache-from ${TAG} \
+		--cache-from rlworkgroup/garage-ci:latest \
 		-f docker/Dockerfile \
 		--target garage-dev-18.04 \
 		-t ${TAG} \
 		${BUILD_ARGS} .
 
 build-headless: TAG ?= rlworkgroup/garage-headless:latest
-build-headless: docker/Dockerfile
+build-headless: assert-docker-version docker/Dockerfile
 	docker build \
 		-f docker/Dockerfile \
 		--cache-from rlworkgroup/garage-headless:latest \
@@ -153,7 +156,7 @@ build-headless: docker/Dockerfile
 
 build-nvidia: TAG ?= rlworkgroup/garage-nvidia:latest
 build-nvidia: PARENT_IMAGE ?= nvidia/cuda:10.2-runtime-ubuntu18.04
-build-nvidia: docker/Dockerfile
+build-nvidia: assert-docker-version docker/Dockerfile
 	docker build \
 		-f docker/Dockerfile \
 		--cache-from rlworkgroup/garage-nvidia:latest \
@@ -183,7 +186,7 @@ run-ci:
 run-headless: ## Run the Docker container for headless machines
 run-headless: CONTAINER_NAME ?= ''
 run-headless: user ?= $$USER
-run-headless: build-headless
+run-headless: ensure-data-path-exists build-headless
 	docker run \
 		-it \
 		--rm \
@@ -194,21 +197,41 @@ run-headless: build-headless
 		rlworkgroup/garage-headless ${RUN_CMD}
 
 run-nvidia: ## Run the Docker container for machines with NVIDIA GPUs
-run-nvidia: ## Requires https://github.com/NVIDIA/nvidia-container-runtime and CUDA 10.2
+run-nvidia: ## Requires https://github.com/NVIDIA/nvidia-container-runtime and NVIDIA driver 440+
 run-nvidia: CONTAINER_NAME ?= ''
 run-nvidia: user ?= $$USER
-run-nvidia: build-nvidia
+run-nvidia: GPUS ?= "all"
+run-nvidia: ensure-data-path-exists build-nvidia
 	xhost +local:docker
 	docker run \
 		-it \
 		--rm \
-		--runtime=nvidia \
+		--gpus $(GPUS) \
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
+		-v $(DATA_PATH)/$(CONTAINER_NAME):/home/rakelly/garage/data \ # NOTE hard-coded this path!
+		-e DISPLAY=$(DISPLAY) \
+		-e QT_X11_NO_MITSHM=1 \
+		-e MJKEY="$$(cat $(MJKEY_PATH))" \
+		--name $(CONTAINER_NAME) \
+		${RUN_ARGS} \
+		rlworkgroup/garage-nvidia ${RUN_CMD}
+
+run-nvidia-headless: ## Run the Docker container for machines with NVIDIA GPUs
+run-nvidia-headless: ## Requires https://github.com/NVIDIA/nvidia-container-runtime and NVIDIA driver 440+
+run-nvidia-headless: CONTAINER_NAME ?= ''
+run-nvidia-headless: user ?= $$USER
+run-nvidia-headless: GPUS ?= "all"
+run-nvidia-headless: ensure-data-path-exists build-nvidia
+	docker run \
+		-it \
+		--rm \
+		--runtime=nvidia \
+		--gpus $(GPUS) \
 		-v $(DATA_PATH)/$(CONTAINER_NAME):/home/$(user)/code/garage/data \
 		-e DISPLAY=$(DISPLAY) \
 		-e QT_X11_NO_MITSHM=1 \
 		-e MJKEY="$$(cat $(MJKEY_PATH))" \
-		--name $(CONTAINER_NAME)
+		--name $(CONTAINER_NAME) \
 		${RUN_ARGS} \
 		rlworkgroup/garage-nvidia ${RUN_CMD}
 
@@ -223,6 +246,14 @@ ifndef TRAVIS
 	@echo 'This recipe is only to be run from TravisCI'
 	@exit 1
 endif
+
+ensure-data-path-exists:
+	mkdir -p $(DATA_PATH)/$(CONTAINER_NAME) || { echo "Cannot create directory $(DATA_PATH)/$(CONTAINER_NAME)"; exit 1; }
+
+# Check that the docker version is 19.03 or higher
+assert-docker-version:
+	@[[ $(shell docker version -f "{{.Server.Version}}" | cut -d'.' -f 1) > 18 ]] \
+		|| { echo "You need docker 19.03 or higher to build garage"; exit 1; }
 
 # Help target
 # See https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html

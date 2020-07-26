@@ -126,6 +126,10 @@ RUN \
   rm -rf /var/lib/apt/lists/* && \
   mkdir -p -m 1777 /tmp/.X11-unix
 
+# Dumb hack to make mujoco_py see the GPU
+RUN mkdir -p /usr/lib/nvidia-000
+ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/usr/lib/nvidia-000
+
 ARG user=garage-user
 ARG uid=999
 USER $user

@@ -5,8 +5,8 @@ import click
 
 from garage import wrap_experiment
 from garage.envs.garage_env import GarageEnv
-from garage.envs.meld.cheetah.meld_cheetah_vel import HalfCheetahVelEnv as MeldHalfCheetahVelEnv
-from garage.envs.meld.cheetah.meld_cheetah_wrapper import MeldCheetahWrapper
+from garage.envs.meld import HalfCheetahVelEnv as MeldHalfCheetahVelEnv
+from garage.envs.meld import MeldCheetahWrapper
 from garage.experiment import LocalTFRunner
 from garage.experiment import task_sampler
 from garage.experiment.experiment import ExperimentContext
@@ -34,7 +34,7 @@ from garage.tf.policies import GaussianGRUPolicy
 @click.option('--num_eval_exp_traj', default=1)
 @click.option('--num_eval_test_traj', default=1)
 @click.option('--env', default='cheetah')
-@wrap_experiment(prefix='rl2-ppo-state', archive_launch_repo=False)
+@wrap_experiment(prefix='rl2-ppo-image', archive_launch_repo=False)
 def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
                                   n_epochs, episode_per_task, num_eval_exp_traj, num_eval_test_traj, env):
     """Perform meta-testing on RL2PPO with HalfCheetah environment.
