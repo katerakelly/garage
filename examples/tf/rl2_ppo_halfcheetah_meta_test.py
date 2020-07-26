@@ -6,7 +6,8 @@ import click
 from garage import wrap_experiment
 from garage.envs.garage_env import GarageEnv
 from garage.envs.meld import HalfCheetahVelEnv as MeldHalfCheetahVelEnv
-from garage.envs.meld import MeldCheetahWrapper
+from garage.envs.meld import SawyerReachingEnvMultitask, SawyerPegInsertionEnv4Box, SawyerPegShelfEnvMultitask
+from garage.envs.meld import MeldCheetahWrapper, MeldReachingWrapper, MeldPegWrapper, MeldShelfWrapper
 from garage.experiment import LocalTFRunner
 from garage.experiment import task_sampler
 from garage.experiment.experiment import ExperimentContext
@@ -23,6 +24,7 @@ from garage.tf.policies import GaussianGRUPolicy
 # cheetah: path_length: 50, train_tasks: 20, eval_tasks: 10
 # reacher: path_length: 40, train_tasks: 60, eval_tasks: 10
 # peg: path_length: 40, train_tasks: 30, eval_tasks: 10
+# shelf: path_length: 40, train_tasks: 40, eval_tasks: 10
 
 
 @click.command()
@@ -54,7 +56,14 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
     ctxt = ExperimentContext(snapshot_dir='', snapshot_mode='none', snapshot_gap='')
     with LocalTFRunner(snapshot_config=ctxt) as runner:
         # handle pixel normalization ourselves in the env!
-        env = GarageEnv(MeldCheetahWrapper(MeldHalfCheetahVelEnv(), image_obs=True), is_image=False)
+        if env == 'cheetah':
+            env = GarageEnv(MeldCheetahWrapper(MeldHalfCheetahVelEnv(), image_obs=True), is_image=False)
+        elif env == 'reacher':
+            env = GarageEnv(MeldReachingWrapper(SawyerReachingEnvMultitask(), image_obs=True), is_image=False)
+        elif env == 'peg':
+            env = GarageEnv(MeldPegWrapper(SawyerPegInsertionEnv4Box(), image_obs=True), is_image=False)
+        elif env == 'shelf':
+            env = GarageEnv(MeldShelfWrapper(SawyerPegShelfEnvMultitask(), image_obs=True), is_image=False)
         tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
             env=env))
         test_tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
