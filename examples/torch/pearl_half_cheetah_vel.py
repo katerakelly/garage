@@ -5,6 +5,7 @@ import click
 from garage import wrap_experiment
 from garage.envs import GarageEnv, normalize
 from garage.envs.mujoco import HalfCheetahVelEnv
+from garage.envs.mujoco import AntGoalEnv
 from garage.experiment import LocalRunner
 from garage.experiment.deterministic import set_seed
 from garage.experiment.task_sampler import SetTaskSampler
@@ -19,22 +20,24 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 
 
 @click.command()
+@click.option('--env', default='cheetah-vel')
 @click.option('--num_epochs', default=500)
-@click.option('--num_train_tasks', default=100)
+@click.option('--num_train_tasks', default=150)
 @click.option('--num_test_tasks', default=30)
 @click.option('--encoder_hidden_size', default=200)
 @click.option('--net_size', default=300)
-@click.option('--num_steps_per_epoch', default=2000)
+@click.option('--num_steps_per_epoch', default=4000)
 @click.option('--num_initial_steps', default=2000)
 @click.option('--num_steps_prior', default=400)
 @click.option('--num_extra_rl_steps_posterior', default=600)
 @click.option('--batch_size', default=256)
-@click.option('--embedding_batch_size', default=100)
-@click.option('--embedding_mini_batch_size', default=100)
+@click.option('--embedding_batch_size', default=256)
+@click.option('--embedding_mini_batch_size', default=256)
 @click.option('--max_path_length', default=200)
-@wrap_experiment
+@wrap_experiment(archive_launch_repo=False)
 def pearl_half_cheetah_vel(ctxt=None,
                            seed=1,
+                           env='cheetah-vel',
                            num_epochs=500,
                            num_train_tasks=100,
                            num_test_tasks=30,
@@ -93,11 +96,19 @@ def pearl_half_cheetah_vel(ctxt=None,
     encoder_hidden_sizes = (encoder_hidden_size, encoder_hidden_size,
                             encoder_hidden_size)
     # create multi-task environment and sample tasks
-    env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(HalfCheetahVelEnv())))
-    env = env_sampler.sample(num_train_tasks)
-    test_env_sampler = SetTaskSampler(lambda: GarageEnv(
-        normalize(HalfCheetahVelEnv())))
+    if env == 'cheetah-vel':
+        env_sampler = SetTaskSampler(lambda: GarageEnv(
+            normalize(HalfCheetahVelEnv())))
+        env = env_sampler.sample(num_train_tasks)
+        test_env_sampler = SetTaskSampler(lambda: GarageEnv(
+            normalize(HalfCheetahVelEnv())))
+
+    elif env == 'ant-goal':
+        env_sampler = SetTaskSampler(lambda: GarageEnv(
+            normalize(AntGoalEnv())))
+        env = env_sampler.sample(num_train_tasks)
+        test_env_sampler = SetTaskSampler(lambda: GarageEnv(
+            normalize(AntGoalEnv())))
 
     runner = LocalRunner(ctxt)
 

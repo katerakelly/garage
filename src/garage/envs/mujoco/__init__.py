@@ -6,8 +6,10 @@ except Exception as e:
 
 from garage.envs.mujoco.half_cheetah_dir_env import HalfCheetahDirEnv
 from garage.envs.mujoco.half_cheetah_vel_env import HalfCheetahVelEnv
+from garage.envs.mujoco.ant_goal import AntGoalEnv
 
 __all__ = [
     'HalfCheetahDirEnv',
     'HalfCheetahVelEnv',
+    'AntGoalEnv',
 ]
