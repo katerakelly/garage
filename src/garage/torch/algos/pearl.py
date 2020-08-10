@@ -6,7 +6,7 @@ Code is adapted from https://github.com/katerakelly/oyster.
 import copy
 
 import akro
-from dowel import logger
+from dowel import logger, tabular
 import numpy as np
 import torch
 
@@ -298,7 +298,8 @@ class PEARL(MetaRLAlgorithm):
 
             logger.log('Training...')
             # sample train tasks and optimize networks
-            self._train_once()
+            stats = self._train_once()
+            self._log_statistics(*stats)
             runner.step_itr += 1
 
             logger.log('Evaluating...')
@@ -311,7 +312,8 @@ class PEARL(MetaRLAlgorithm):
         for _ in range(self._num_steps_per_epoch):
             indices = np.random.choice(range(self._num_train_tasks),
                                        self._meta_batch_size)
-            self._optimize_policy(indices)
+            losses = self._optimize_policy(indices)
+        return losses
 
     def _optimize_policy(self, indices):
         """Perform algorithm optimizing.
@@ -396,6 +398,7 @@ class PEARL(MetaRLAlgorithm):
         self._policy_optimizer.zero_grad()
         policy_loss.backward()
         self._policy_optimizer.step()
+        return kl_loss, qf_loss, vf_loss, policy_loss, np.mean(np.abs(policy_mean.flatten())), np.mean(np.abs(policy_log_std.flatten()))
 
     def _obtain_samples(self,
                         runner,
@@ -538,6 +541,25 @@ class PEARL(MetaRLAlgorithm):
             target_param.data.copy_(target_param.data *
                                     (1.0 - self._soft_target_tau) +
                                     param.data * self._soft_target_tau)
+
+    def _log_statistics(self, encoder_loss, qf_loss, vf_loss, policy_loss, policy_mean, policy_log_std):
+        """Record training statistics to dowel such as losses and returns.
+
+        Args:
+            encoder_loss(torch.Tensor): KL loss on encoder.
+            qf_loss(torch.Tensor): min loss from qf/critic networks.
+            vf_loss(torch.Tensor): loss from vf network.
+            policy_loss(torch.Tensor): loss from actor/policy network.
+            policy_mean(torch.Tensor): mean of actor/policy network output.
+            policy_log_std(torch.Tensor): log std of actor/policy network output.
+
+        """
+        tabular.record('Encoder/KLLoss', float(encoder_loss))
+        tabular.record('Policy/Loss', policy_loss.item())
+        tabular.record('QF/QfLoss', float(qf_loss))
+        tabular.record('VF/VfLoss', float(vf_loss))
+        tabular.record('Policy/Mean', float(policy_mean))
+        tabular.record('Policy/LogStd', float(policy_log_std))
 
     @property
     def policy(self):
