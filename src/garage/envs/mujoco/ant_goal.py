@@ -31,6 +31,9 @@ class AntGoalEnv(MultitaskAntEnv):
         )
 
     def sample_tasks(self, num_tasks):
+        # hard-code a single task for debugging
+        if num_tasks == 1:
+            return [{'goal': np.array([1.0, 1.0])}]
         a = np.random.random(num_tasks) * 2 * np.pi
         r = 3 * np.random.random(num_tasks) ** 0.5
         goals = np.stack((r * np.cos(a), r * np.sin(a)), axis=-1)
