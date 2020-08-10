@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 from gym.envs.mujoco import MujocoEnv
 
@@ -7,9 +8,13 @@ class AntEnv(MujocoEnv):
     def __init__(self, use_low_gear_ratio=False):
         # self.init_serialization(locals())
         if use_low_gear_ratio:
+            print('Using low gear ratio and local xml file')
             xml_path = 'low_gear_ratio_ant.xml'
+            xml_path = os.path.join(os.path.dirname(__file__), "assets", xml_path)
         else:
+            print('Using local XML file')
             xml_path = 'ant.xml'
+            xml_path = os.path.join(os.path.dirname(__file__), "assets", xml_path)
         super().__init__(
             xml_path,
             frame_skip=5,

@@ -34,6 +34,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--embedding_batch_size', default=256)
 @click.option('--embedding_mini_batch_size', default=256)
 @click.option('--max_path_length', default=200)
+@click.option('--low_gear', is_flag=True)
 @wrap_experiment(archive_launch_repo=False)
 def pearl_half_cheetah_vel(ctxt=None,
                            seed=1,
@@ -56,6 +57,7 @@ def pearl_half_cheetah_vel(ctxt=None,
                            max_path_length=200,
                            reward_scale=5.,
                            use_gpu=False):
+                           low_gear=False):
     """Train PEARL with HalfCheetahVel environment.
 
     Args:
@@ -105,10 +107,10 @@ def pearl_half_cheetah_vel(ctxt=None,
 
     elif env == 'ant-goal':
         env_sampler = SetTaskSampler(lambda: GarageEnv(
-            normalize(AntGoalEnv())))
+            normalize(AntGoalEnv(use_low_gear_ratio=low_gear))))
         env = env_sampler.sample(num_train_tasks)
         test_env_sampler = SetTaskSampler(lambda: GarageEnv(
-            normalize(AntGoalEnv())))
+            normalize(AntGoalEnv(use_low_gear_ratio=low_gear))))
 
     runner = LocalRunner(ctxt)
 
