@@ -5,7 +5,7 @@ import click
 from garage import wrap_experiment
 from garage.envs import GarageEnv, normalize
 from garage.envs.mujoco import HalfCheetahVelEnv
-from garage.envs.mujoco import AntGoalEnv
+from garage.envs.mujoco import AntGoalEnv, AntDirEnv
 from garage.experiment import LocalRunner
 from garage.experiment.deterministic import set_seed
 from garage.experiment.task_sampler import SetTaskSampler
@@ -111,6 +111,13 @@ def pearl_half_cheetah_vel(ctxt=None,
         env = env_sampler.sample(num_train_tasks)
         test_env_sampler = SetTaskSampler(lambda: GarageEnv(
             normalize(AntGoalEnv(use_low_gear_ratio=low_gear))))
+
+    elif env == 'ant-dir':
+        env_sampler = SetTaskSampler(lambda: GarageEnv(
+            normalize(AntDirEnv(use_low_gear_ratio=low_gear))))
+        env = env_sampler.sample(num_train_tasks)
+        test_env_sampler = SetTaskSampler(lambda: GarageEnv(
+            normalize(AntDirEnv(use_low_gear_ratio=low_gear))))
 
     runner = LocalRunner(ctxt)
 

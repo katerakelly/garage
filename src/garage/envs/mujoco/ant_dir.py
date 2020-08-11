@@ -1,14 +1,13 @@
 import numpy as np
 
-from rlkit.envs.ant_multitask_base import MultitaskAntEnv
-from . import register_env
+from garage.envs.mujoco.ant_multitask_base import MultitaskAntEnv
 
 
-@register_env('ant-dir')
 class AntDirEnv(MultitaskAntEnv):
 
-    def __init__(self, task={}, n_tasks=2, forward_backward=False, randomize_tasks=True, **kwargs):
+    def __init__(self, task={}, n_tasks=2, forward_backward=True, randomize_tasks=True, **kwargs):
         self.forward_backward = forward_backward
+        task = task or {'goal': 0.0}
         super(AntDirEnv, self).__init__(task, n_tasks, **kwargs)
 
     def step(self, action):
@@ -30,6 +29,7 @@ class AntDirEnv(MultitaskAntEnv):
         notdone = np.isfinite(state).all() \
                   and state[2] >= 0.2 and state[2] <= 1.0
         done = not notdone
+        done = False
         ob = self._get_obs()
         return ob, reward, done, dict(
             reward_forward=forward_reward,
@@ -41,9 +41,26 @@ class AntDirEnv(MultitaskAntEnv):
 
     def sample_tasks(self, num_tasks):
         if self.forward_backward:
-            assert num_tasks == 2
+            #assert num_tasks == 2
             velocities = np.array([0., np.pi])
+            if num_tasks == 1:
+                velocities = np.array([np.random.choice(velocities)])
+                print('Sampling 1 task: {}'.format(velocities[0]))
         else:
             velocities = np.random.uniform(0., 2.0 * np.pi, size=(num_tasks,))
         tasks = [{'goal': velocity} for velocity in velocities]
         return tasks
+
+    def __getstate__(self):
+        """See `Object.__getstate__.
+        Returns:
+            dict: The instance’s dictionary to be pickled.
+        """
+        return dict(task=self._task)
+
+    def __setstate__(self, state):
+        """See `Object.__setstate__.
+        Args:
+            state (dict): Unpickled state of this object.
+        """
+        self.__init__(task=state['task'])
