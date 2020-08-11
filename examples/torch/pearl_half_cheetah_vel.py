@@ -34,6 +34,7 @@ from garage.torch.q_functions import ContinuousMLPQFunction
 @click.option('--embedding_batch_size', default=256)
 @click.option('--embedding_mini_batch_size', default=256)
 @click.option('--max_path_length', default=200)
+@click.option('--gpu', default=0)
 @click.option('--low_gear', is_flag=True)
 @wrap_experiment(archive_launch_repo=False)
 def pearl_half_cheetah_vel(ctxt=None,
@@ -56,7 +57,8 @@ def pearl_half_cheetah_vel(ctxt=None,
                            embedding_mini_batch_size=100,
                            max_path_length=200,
                            reward_scale=5.,
-                           use_gpu=False):
+                           use_gpu=True,
+                           gpu=0,
                            low_gear=False):
     """Train PEARL with HalfCheetahVel environment.
 
@@ -158,8 +160,9 @@ def pearl_half_cheetah_vel(ctxt=None,
         reward_scale=reward_scale,
     )
 
-    set_gpu_mode(use_gpu, gpu_id=0)
+    set_gpu_mode(use_gpu, gpu_id=gpu)
     if use_gpu:
+        print('Running on GPU {}'.format(gpu))
         pearl.to()
 
     runner.setup(algo=pearl,
