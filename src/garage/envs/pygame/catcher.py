@@ -33,5 +33,5 @@ class PygameCatcherEnv(CatcherEnv, Serializable):
         self.quick_init(locals())
 
     def step(self, action):
-        action = action[0]
+        action = np.argmax(action)
         return super().step(action)

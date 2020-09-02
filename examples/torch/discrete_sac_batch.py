@@ -13,9 +13,9 @@ from garage.experiment import deterministic, LocalRunner
 from garage.replay_buffer import PathBuffer
 from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
-from garage.torch.algos import SAC
-from garage.torch.policies import TanhGaussianMLPPolicy
-from garage.torch.q_functions import ContinuousMLPQFunction
+from garage.torch.algos import DiscreteSAC
+from garage.torch.policies import CategoricalMLPPolicy
+from garage.torch.q_functions import DiscreteMLPQFunction
 
 
 @click.command()
@@ -31,32 +31,34 @@ def sac_half_cheetah_batch(ctxt, env, image, seed):
             configuration used by LocalRunner to create the snapshotter.
         seed (int): Used to seed the random number generator to produce
             determinism.
+        env (str): shorthand for env to use
+        image (bool): whether to use image obs or underlying state
 
     """
     deterministic.set_seed(seed)
     runner = LocalRunner(snapshot_config=ctxt)
-    env = GarageEnv(normalize(gym.make('HalfCheetah-v2')), is_image=image)
+    if env == 'cheetah':
+        env = GarageEnv(normalize(gym.make('HalfCheetah-v2')), is_image=image)
+    elif env == 'catcher':
+        env = GarageEnv(normalize(gym.make('Catcher-PLE-serial-v0')))
 
-    policy = TanhGaussianMLPPolicy(
+    policy = CategoricalMLPPolicy(
         env_spec=env.spec,
         hidden_sizes=[256, 256],
         hidden_nonlinearity=nn.ReLU,
-        output_nonlinearity=None,
-        min_std=np.exp(-20.),
-        max_std=np.exp(2.),
     )
 
-    qf1 = ContinuousMLPQFunction(env_spec=env.spec,
+    qf1 = DiscreteMLPQFunction(env_spec=env.spec,
                                  hidden_sizes=[256, 256],
                                  hidden_nonlinearity=F.relu)
 
-    qf2 = ContinuousMLPQFunction(env_spec=env.spec,
+    qf2 = DiscreteMLPQFunction(env_spec=env.spec,
                                  hidden_sizes=[256, 256],
                                  hidden_nonlinearity=F.relu)
 
     replay_buffer = PathBuffer(capacity_in_transitions=int(1e6))
 
-    sac = SAC(env_spec=env.spec,
+    sac = DiscreteSAC(env_spec=env.spec,
               policy=policy,
               qf1=qf1,
               qf2=qf2,
