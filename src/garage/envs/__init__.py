@@ -19,3 +19,6 @@ __all__ = [
     'PointEnv',
     'TaskOnehotWrapper',
 ]
+
+from gym.envs.registration import register
+register(id='Catcher-PLE-serial-v0', entry_point=f'garage.envs.pygame.catcher:PygameCatcherEnv')
