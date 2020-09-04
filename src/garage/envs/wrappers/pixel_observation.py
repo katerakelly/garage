@@ -27,14 +27,14 @@ class PixelObservationWrapper(gym.Wrapper):
     """
 
     def __init__(self, env, headless=True):
-        if headless:
+        #if headless:
             # pylint: disable=import-outside-toplevel
             # this import fails without a valid mujoco license
             # so keep this here to avoid unecessarily requiring
             # a mujoco license everytime the wrappers package is
             # accessed.
-            from mujoco_py import GlfwContext
-            GlfwContext(offscreen=True)
+            #from mujoco_py import GlfwContext
+            #GlfwContext(offscreen=True)
         env.reset()
         env = gymWrapper(env)
         super().__init__(env)
@@ -81,3 +81,26 @@ class PixelObservationWrapper(gym.Wrapper):
         """
         obs, reward, done, info = self.env.step(action)
         return obs['pixels'], reward, done, info
+
+    def _add_pixel_observation(self, wrapped_observation):
+        """
+        Override the gym PixelObservation wrapper method which calls
+        `env.render()` which might result in GLFW errors
+        Instead, just use `env.sim.render()`
+        """
+        if self._pixels_only:
+            observation = collections.OrderedDict()
+        elif self._observation_is_dict:
+            observation = type(wrapped_observation)(wrapped_observation)
+        else:
+            observation = collections.OrderedDict()
+            observation[STATE_KEY] = wrapped_observation
+
+        pixel_observations = {
+            pixel_key: self.env.sim.render(**self._render_kwargs[pixel_key])
+            for pixel_key in self._pixel_keys
+        }
+
+        observation.update(pixel_observations)
+
+        return observation
