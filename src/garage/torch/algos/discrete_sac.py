@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn.functional as F
 
@@ -15,6 +16,9 @@ class DiscreteSAC(SAC):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self._use_automatic_entropy_tuning:
+            # TODO this is hacked for the catcher env
+            self._target_entropy = -np.log(1.0 / 3.0) * 0.98
 
     def _temperature_objective(self, pi, log_pi, samples_data):
         alpha_loss = 0
@@ -58,7 +62,6 @@ class DiscreteSAC(SAC):
             self._target_qf2(next_obs)) # batch x action_dim
         # V(s) = E_pi Q(s, a) - alpha * log pi
         # take exact expectation wrt pi because we can!
-        # TODO check that -1 is the action dim
         target_q_values = (pi * (min_q_values - (alpha * log_pi))).mean(dim=-1)
         with torch.no_grad():
             q_target = rewards * self._reward_scale + (
@@ -85,7 +88,8 @@ class DiscreteSAC(SAC):
 
         # just do this once here to avoid another forward call
         # when performing alpha update
-        pi = self.policy(obs)[0].probs
+        pi_dist = self.policy(obs)[0]
+        pi = pi_dist.probs
         # don't take a log of 0!
         zero_locs = pi == 0.0
         zero_locs = zero_locs.float() * 1e-8
@@ -104,4 +108,6 @@ class DiscreteSAC(SAC):
             alpha_loss.backward()
             self._alpha_optimizer.step()
 
-        return policy_loss, qf1_loss, qf2_loss
+        policy_entropy = pi_dist.entropy()
+
+        return policy_loss, qf1_loss, qf2_loss, policy_entropy

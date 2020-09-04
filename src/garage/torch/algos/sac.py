@@ -201,9 +201,9 @@ class SAC(RLAlgorithm):
                 assert len(path_returns) is len(runner.step_path)
                 self.episode_rewards.append(np.mean(path_returns))
                 for _ in range(self._gradient_steps):
-                    policy_loss, qf1_loss, qf2_loss = self.train_once()
+                    policy_loss, qf1_loss, qf2_loss, policy_entropy = self.train_once()
             last_return = self._evaluate_policy(runner.step_itr)
-            self._log_statistics(policy_loss, qf1_loss, qf2_loss)
+            self._log_statistics(policy_loss, qf1_loss, qf2_loss, policy_entropy)
             tabular.record('TotalEnvSteps', runner.total_env_steps)
             runner.step_itr += 1
 
@@ -229,10 +229,10 @@ class SAC(RLAlgorithm):
             samples = self.replay_buffer.sample_transitions(
                 self._buffer_batch_size)
             samples = dict_np_to_torch(samples)
-            policy_loss, qf1_loss, qf2_loss = self.optimize_policy(samples)
+            policy_loss, qf1_loss, qf2_loss, policy_entropy = self.optimize_policy(samples)
             self._update_targets()
 
-        return policy_loss, qf1_loss, qf2_loss
+        return policy_loss, qf1_loss, qf2_loss, policy_entropy
 
     def _get_log_alpha(self, samples_data):
         """Return the value of log_alpha.
@@ -441,7 +441,9 @@ class SAC(RLAlgorithm):
             alpha_loss.backward()
             self._alpha_optimizer.step()
 
-        return policy_loss, qf1_loss, qf2_loss
+        policy_entropy = action_dists.entropy()
+
+        return policy_loss, qf1_loss, qf2_loss, policy_entropy
 
     def _evaluate_policy(self, epoch):
         """Evaluate the performance of the policy via deterministic rollouts.
@@ -466,21 +468,25 @@ class SAC(RLAlgorithm):
                                       discount=self._discount)
         return last_return
 
-    def _log_statistics(self, policy_loss, qf1_loss, qf2_loss):
+    def _log_statistics(self, policy_loss, qf1_loss, qf2_loss, policy_entropy):
         """Record training statistics to dowel such as losses and returns.
 
         Args:
             policy_loss(torch.Tensor): loss from actor/policy network.
             qf1_loss(torch.Tensor): loss from 1st qf/critic network.
             qf2_loss(torch.Tensor): loss from 2nd qf/critic network.
+            policy_entropy(torch.Tensor): entropy of policy dist.
 
         """
         with torch.no_grad():
             tabular.record('AlphaTemperature/mean',
                            self._log_alpha.exp().mean().item())
         tabular.record('Policy/Loss', policy_loss.item())
+        tabular.record('Policy/Foo', 1)
         tabular.record('QF/{}'.format('Qf1Loss'), float(qf1_loss))
         tabular.record('QF/{}'.format('Qf2Loss'), float(qf2_loss))
+        tabular.record('Policy/EntropyMean', policy_entropy.mean().item())
+        tabular.record('Policy/EntropyStd', policy_entropy.std().item())
         tabular.record('ReplayBuffer/buffer_size',
                        self.replay_buffer.n_transitions_stored)
         tabular.record('Average/TrainAverageReturn',
