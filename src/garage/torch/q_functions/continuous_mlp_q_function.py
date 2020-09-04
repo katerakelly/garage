@@ -1,6 +1,7 @@
 """This modules creates a continuous Q-function network."""
 
 import torch
+from torch import nn
 
 from garage.torch.modules import MLPModule
 
@@ -13,7 +14,7 @@ class ContinuousMLPQFunction(MLPModule):
     a PyTorch neural network module to fit the function of Q(s, a).
     """
 
-    def __init__(self, env_spec, **kwargs):
+    def __init__(self, env_spec, input_dim, **kwargs):
         """
         Initialize class with multiple attributes.
 
@@ -26,10 +27,27 @@ class ContinuousMLPQFunction(MLPModule):
         self._action_dim = env_spec.action_space.flat_dim
 
         MLPModule.__init__(self,
-                           input_dim=self._obs_dim + self._action_dim,
+                           input_dim=input_dim,
                            output_dim=1,
                            **kwargs)
 
     def forward(self, observations, actions):
         """Return Q-value(s)."""
-        return super().forward(torch.cat([observations, actions], 1))
+        _input = torch.cat([observations, actions], 1)
+        return super().forward(_input)
+
+
+class ContinuousCNNQFunction(nn.Module):
+    """
+    Q-function network with CNN encoder on the front.
+    """
+
+    def __init__(self, cnn_encoder, mlp_q):
+        super().__init__()
+        self._cnn_encoder = cnn_encoder
+        self._mlp_q = mlp_q
+
+    def forward(self, observations, actions):
+        _out = self._cnn_encoder(observations)
+        return self._mlp_q(_out, actions)
+

@@ -48,6 +48,7 @@ class TanhGaussianMLPPolicy(StochasticPolicy):
                exponential transformation
             - softplus: the std will be computed as log(1+exp(x))
         layer_normalization (bool): Bool for using layer normalization or not.
+        cnn_encoder (torch.nn.Module): convolutional encoder for image obs
 
     """
 
@@ -64,14 +65,20 @@ class TanhGaussianMLPPolicy(StochasticPolicy):
                  min_std=np.exp(-20.),
                  max_std=np.exp(2.),
                  std_parameterization='exp',
-                 layer_normalization=False):
+                 layer_normalization=False,
+                 cnn_encoder=None):
         super().__init__(env_spec, name='TanhGaussianPolicy')
 
         self._obs_dim = env_spec.observation_space.flat_dim
         self._action_dim = env_spec.action_space.flat_dim
 
+        self._cnn_encoder = cnn_encoder
+        if self._cnn_encoder is not None:
+            input_dim = self._cnn_encoder.output_dim
+        else:
+            input_dim = self._obs_dim
         self._module = GaussianMLPTwoHeadedModule(
-            input_dim=self._obs_dim,
+            input_dim=input_dim,
             output_dim=self._action_dim,
             hidden_sizes=hidden_sizes,
             hidden_nonlinearity=hidden_nonlinearity,
@@ -99,6 +106,8 @@ class TanhGaussianMLPPolicy(StochasticPolicy):
             dict[str, torch.Tensor]: Additional agent_info, as torch Tensors
 
         """
+        if self._cnn_encoder is not None:
+            observations = self._cnn_encoder(observations)
         dist = self._module(observations)
         ret_mean = dist.mean.cpu()
         ret_log_std = (dist.variance.sqrt()).log().cpu()
