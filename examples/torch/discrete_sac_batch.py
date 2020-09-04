@@ -69,7 +69,7 @@ def sac_half_cheetah_batch(ctxt, env, image, seed):
               target_update_tau=5e-3,
               discount=0.99,
               buffer_batch_size=256,
-              reward_scale=1.,
+              reward_scale=10.,
               steps_per_epoch=1)
 
     if torch.cuda.is_available():
