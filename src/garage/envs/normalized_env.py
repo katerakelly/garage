@@ -36,6 +36,7 @@ class NormalizedEnv(gym.Wrapper):
             flatten_obs=True,
             obs_alpha=0.001,
             reward_alpha=0.001,
+            image_obs=False
     ):
         super().__init__(env)
 
@@ -53,6 +54,8 @@ class NormalizedEnv(gym.Wrapper):
         self._reward_alpha = reward_alpha
         self._reward_mean = 0.
         self._reward_var = 1.
+
+        self._image_obs = image_obs
 
     def _update_obs_estimate(self, obs):
         flat_obs = gym.spaces.utils.flatten(self.env.observation_space, obs)
@@ -82,8 +85,11 @@ class NormalizedEnv(gym.Wrapper):
         """
         self._update_obs_estimate(obs)
         flat_obs = gym.spaces.utils.flatten(self.env.observation_space, obs)
-        normalized_obs = (flat_obs -
-                          self._obs_mean) / (np.sqrt(self._obs_var) + 1e-8)
+        if self._image_obs:
+            normalized_obs = flat_obs.astype(np.float32) / 256.
+        else:
+            normalized_obs = (flat_obs -
+                            self._obs_mean) / (np.sqrt(self._obs_var) + 1e-8)
         if not self._flatten_obs:
             normalized_obs = gym.spaces.utils.unflatten(
                 self.env.observation_space, normalized_obs)
