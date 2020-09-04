@@ -482,7 +482,6 @@ class SAC(RLAlgorithm):
             tabular.record('AlphaTemperature/mean',
                            self._log_alpha.exp().mean().item())
         tabular.record('Policy/Loss', policy_loss.item())
-        tabular.record('Policy/Foo', 1)
         tabular.record('QF/{}'.format('Qf1Loss'), float(qf1_loss))
         tabular.record('QF/{}'.format('Qf2Loss'), float(qf2_loss))
         tabular.record('Policy/EntropyMean', policy_entropy.mean().item())
