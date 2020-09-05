@@ -149,6 +149,7 @@ class SAC(RLAlgorithm):
                                               lr=self._qf_lr)
         self._qf2_optimizer = self._optimizer(self._qf2.parameters(),
                                               lr=self._qf_lr)
+        self._cnn = None
         if cnn_encoder is not None:
             self._cnn = cnn_encoder
             # TODO using QF learning rate here
