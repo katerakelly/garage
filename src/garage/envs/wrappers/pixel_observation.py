@@ -36,7 +36,7 @@ class PixelObservationWrapper(gym.Wrapper):
             #from mujoco_py import GlfwContext
             #GlfwContext(offscreen=True)
         env.reset()
-        env = gymWrapper(env)
+        env = gymWrapper(env, render_kwargs={'mode':'rgb_array'})
         super().__init__(env)
         self._observation_space = env.observation_space['pixels']
 
@@ -88,6 +88,7 @@ class PixelObservationWrapper(gym.Wrapper):
         `env.render()` which might result in GLFW errors
         Instead, just use `env.sim.render()`
         """
+        # NOTE this is not actually used
         if self._pixels_only:
             observation = collections.OrderedDict()
         elif self._observation_is_dict:
