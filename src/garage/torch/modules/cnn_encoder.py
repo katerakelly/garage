@@ -29,5 +29,5 @@ class CNNEncoder(nn.Module):
         in_ = F.relu(self.conv2(in_))
         in_ = F.relu(self.conv3(in_))
         in_ = F.relu(self.conv4(in_))
-        in_ = F.relu(self.conv5(in_)).squeeze()
+        in_ = F.relu(self.conv5(in_)).view(-1, 256)
         return in_
