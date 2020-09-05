@@ -39,7 +39,7 @@ class ContinuousMLPQFunction(MLPModule):
 
 class ContinuousCNNQFunction(nn.Module):
     """
-    Q-function network with CNN encoder on the front.
+    Q-function network with optional CNN encoder on the front.
     """
 
     def __init__(self, cnn_encoder, mlp_q):
@@ -48,6 +48,7 @@ class ContinuousCNNQFunction(nn.Module):
         self._mlp_q = mlp_q
 
     def forward(self, observations, actions):
-        _out = self._cnn_encoder(observations)
-        return self._mlp_q(_out, actions)
+        if self._cnn_encoder is not None:
+            observations = self._cnn_encoder(observations)
+        return self._mlp_q(observations, actions)
 
