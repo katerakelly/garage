@@ -45,12 +45,14 @@ def sac_half_cheetah_batch(ctxt, env, image, seed):
         min_std=np.exp(-20.),
         max_std=np.exp(2.),
     )
-
+    input_dim = env.spec.observation_space.flat_dim + env.spec.action_space.flat_dim
     qf1 = ContinuousMLPQFunction(env_spec=env.spec,
+                                 input_dim=input_dim,
                                  hidden_sizes=[256, 256],
                                  hidden_nonlinearity=F.relu)
 
     qf2 = ContinuousMLPQFunction(env_spec=env.spec,
+                                 input_dim=input_dim,
                                  hidden_sizes=[256, 256],
                                  hidden_nonlinearity=F.relu)
 
