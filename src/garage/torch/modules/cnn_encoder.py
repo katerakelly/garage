@@ -14,15 +14,16 @@ class CNNEncoder(nn.Module):
                 output_dim):
         super().__init__()
         # output is batch x feature x 1 x 1 for inputs of 64x64
-        self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=5, stride=2)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=2)
-        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=2)
-        self.conv4 = nn.Conv2d(128, 256, kernel_size=3, stride=2)
-        self.conv5 = nn.Conv2d(256, 256, kernel_size=2, stride=1)
+        self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=5, stride=2, padding=1)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1)
+        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1)
+        self.conv4 = nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1)
+        self.conv5 = nn.Conv2d(256, 256, kernel_size=4, stride=1, padding=0)
         self.output_dim = output_dim
 
 
     def forward(self, in_):
+        # TODO don't hard code this!
         in_ = in_.view(-1, 64, 64, 4)
         in_ = in_.permute(0, 3, 1, 2).contiguous()
         in_ = F.relu(self.conv1(in_))
