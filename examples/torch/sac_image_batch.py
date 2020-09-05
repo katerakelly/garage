@@ -47,7 +47,7 @@ def sac_half_cheetah_batch(ctxt, env, image, seed):
 
     cnn_encoder = CNNEncoder(in_channels=4,
                                 output_dim=256)
-    input_dim = cnn_encoder.output_dim
+    input_dim = cnn_encoder.output_dim + env.spec.action_space.flat_dim
 
     policy = TanhGaussianMLPPolicy(
         env_spec=env.spec,
@@ -85,7 +85,8 @@ def sac_half_cheetah_batch(ctxt, env, image, seed):
               discount=0.99,
               buffer_batch_size=256,
               reward_scale=1.,
-              steps_per_epoch=1)
+              steps_per_epoch=1,
+              cnn_encoder=cnn_encoder)
 
     if torch.cuda.is_available():
         set_gpu_mode(True)
