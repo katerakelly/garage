@@ -26,6 +26,8 @@ def make_env(env_name, is_image):
         env = gym.make('HalfCheetah-v2')
     elif env_name == 'catcher':
         env = gym.make('Catcher-PLE-serial-v0')
+    elif env_name == 'catcher-short':
+        env = gym.make('Catcher-PLE-serial-short-v0')
     if is_image:
         env = PixelObservationWrapper(env)
         env = Grayscale(env)
@@ -75,6 +77,7 @@ def main(env, image, name, seed, gpu, debug):
         cnn_encoder = None
         input_dim = env.spec.observation_space.flat_dim + env.spec.action_space.flat_dim
         if image:
+            print('Using IMAGE observations!')
             cnn_encoder = CNNEncoder(in_channels=4,
                                         output_dim=256)
             input_dim = cnn_encoder.output_dim + env.spec.action_space.flat_dim

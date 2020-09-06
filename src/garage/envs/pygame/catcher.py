@@ -42,3 +42,20 @@ class PygameCatcherEnv(CatcherEnv, Serializable):
             action = 2
         #action = np.argmax(action) # used for softmax action dist
         return super().step(action)
+
+
+class PygameCatcherShortEnv(PygameCatcherEnv, Serializable):
+    """
+    catcher game modified to end episode when fruit is caught
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.quick_init(locals())
+
+    def step(self, action):
+        ob, reward, done, info = super().step(action)
+        done = reward > 0
+        return ob, reward, done, info
+
+
