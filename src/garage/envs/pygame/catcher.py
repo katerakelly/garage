@@ -31,7 +31,14 @@ class PygameCatcherEnv(CatcherEnv, Serializable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.quick_init(locals())
+        self.action_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
 
     def step(self, action):
-        action = np.argmax(action)
+        if action < 0.33:
+            action = 0
+        elif action > 0.33 and action < 0.66:
+            action =1
+        else:
+            action = 2
+        #action = np.argmax(action) # used for softmax action dist
         return super().step(action)
