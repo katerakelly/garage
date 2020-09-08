@@ -3,15 +3,11 @@
 import gym
 import numpy as np
 import click
-import datetime
-import dateutil.tz
 import torch
 from torch import nn
 from torch.nn import functional as F
 
 from garage import wrap_experiment
-from garage.envs import GarageEnv, normalize
-from garage.envs.wrappers import Grayscale, Resize, StackFrames, PixelObservationWrapper
 from garage.experiment import deterministic, LocalRunner
 from garage.replay_buffer import PathBuffer
 from garage.sampler import LocalSampler
@@ -20,24 +16,7 @@ from garage.torch.algos import SAC
 from garage.torch.modules import CNNEncoder
 from garage.torch.policies import TanhGaussianMLPPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction, ContinuousCNNQFunction
-
-def make_env(env_name, is_image, frame_stack):
-    if env_name == 'cheetah':
-        env = gym.make('HalfCheetah-v2')
-    elif env_name == 'catcher':
-        env = gym.make('Catcher-PLE-serial-v0')
-    elif env_name == 'catcher-short':
-        env = gym.make('Catcher-PLE-serial-short-v0')
-    if is_image:
-        env = PixelObservationWrapper(env)
-        env = Grayscale(env)
-        env = Resize(env, 64, 64)
-        env = StackFrames(env, frame_stack)
-        env = GarageEnv(env, is_image=is_image)
-        env = normalize(env, normalize_obs=True, image_obs=True, flatten_obs=True)
-    else:
-        return GarageEnv(normalize(env))
-    return env
+from garage.misc.exp_util import make_env, make_exp_name
 
 
 @click.command()
@@ -47,16 +26,12 @@ def make_env(env_name, is_image, frame_stack):
 @click.option('--seed', default=1)
 @click.option('--gpu', default=0)
 @click.option('--debug', is_flag=True)
-def main(env, image, name, seed, gpu, debug):
-    # name exps by date and time if no name is given
-    if name is None:
-        if debug:
-            name = 'debug'
-        else:
-            now = datetime.datetime.now(dateutil.tz.tzlocal())
-            name = now.strftime('%m_%d_%H_%M_%S')
-
-    @wrap_experiment(prefix=env, name=name, snapshot_mode='none', archive_launch_repo=False)
+@click.option('--overwrite', is_flag=True)
+def main(env, image, name, seed, gpu, debug, overwrite):
+    name = make_exp_name(name, debug)
+    if debug:
+        overwrite = True # always allow overwriting on a debug exp
+    @wrap_experiment(prefix=env, name=name, snapshot_mode='none', archive_launch_repo=False, use_existing_dir=overwrite)
     def sac_batch(ctxt, env, image, seed, gpu):
         """Set up environment and algorithm and run the task.
 
