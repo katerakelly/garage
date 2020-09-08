@@ -34,3 +34,26 @@ class CNNEncoder(nn.Module):
         in_ = F.relu(self.conv4(in_))
         in_ = F.relu(self.conv5(in_)).view(-1, 256)
         return in_
+
+
+class ParallelCNNEncoder(nn.Module):
+    """
+    Container for CNN encoder that takes multiple inputs (images)
+    Pass each input through the CNN and concat the outputs, pass
+    through final head module
+    """
+    def __init__(self,
+                 cnn_encoder,
+                 head):
+        super().__init__()
+        self._cnn_encoder = cnn_encoder
+        self._head = head
+
+    def forward(self, inputs):
+        if self._cnn_encoder is not None:
+            # TODO this might be slower than reshaping images into batch dim
+            feats = [self._cnn_encoder(in_) for in_ in inputs]
+        else:
+            feats = inputs
+        feat = torch.cat(feats, dim=-1)
+        return self._head(feat)

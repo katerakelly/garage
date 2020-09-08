@@ -15,8 +15,7 @@ class InverseMI(ULAlgorithm):
         actions = samples_data['action']
 
         # compute the loss
-        in_ = torch.cat([obs, next_obs], dim=-1)
-        pred_actions = self.predictor(in_).mean
+        pred_actions = self.predictor([obs, next_obs]).mean
         loss = F.mse_loss(pred_actions.flatten(), actions.flatten())
 
         # optimize the predictor
