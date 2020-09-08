@@ -68,12 +68,13 @@ class Snapshotter:
         """
         return self._snapshot_gap
 
-    def save_itr_params(self, itr, params):
+    def save_itr_params(self, itr, params, name='params'):
         """Save the parameters if at the right iteration.
 
         Args:
             itr (int): Number of iterations. Used as the index of snapshot.
             params (obj): Content of snapshot to be saved.
+            name (str): Name of the file to be saved, will default to 'params'
 
         Raises:
             ValueError: If snapshot_mode is not one of "all", "last" or "gap".
@@ -82,19 +83,19 @@ class Snapshotter:
         file_name = None
 
         if self._snapshot_mode == 'all':
-            file_name = os.path.join(self._snapshot_dir, 'itr_%d.pkl' % itr)
+            file_name = os.path.join(self._snapshot_dir, f'{name}_itr_%d.pkl' % itr)
         elif self._snapshot_mode == 'last':
             # override previous params
-            file_name = os.path.join(self._snapshot_dir, 'params.pkl')
+            file_name = os.path.join(self._snapshot_dir, f'{name}.pkl')
         elif self._snapshot_mode == 'gap':
             if itr % self._snapshot_gap == 0:
                 file_name = os.path.join(self._snapshot_dir,
-                                         'itr_%d.pkl' % itr)
+                                         f'{name}_itr_%d.pkl' % itr)
         elif self._snapshot_mode == 'gap_and_last':
             if itr % self._snapshot_gap == 0:
                 file_name = os.path.join(self._snapshot_dir,
-                                         'itr_%d.pkl' % itr)
-            file_name_last = os.path.join(self._snapshot_dir, 'params.pkl')
+                                         f'{name}_itr_%d.pkl' % itr)
+            file_name_last = os.path.join(self._snapshot_dir, f'{name}.pkl')
             with open(file_name_last, 'wb') as file:
                 cloudpickle.dump(params, file)
         elif self._snapshot_mode == 'none':

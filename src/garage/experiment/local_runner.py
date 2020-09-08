@@ -390,6 +390,10 @@ class LocalRunner:
 
         logger.log('Saved')
 
+    def simple_save(self, epoch, params, name='aux'):
+        logger.log('Saving: {}'.format(params.keys()))
+        self._snapshotter.save_itr_params(epoch, params, name)
+
     def restore(self, from_dir, from_epoch='last'):
         """Restore experiment from snapshot.
 
