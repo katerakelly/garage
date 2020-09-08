@@ -27,6 +27,9 @@ class CNNEncoder(nn.Module):
     def forward(self, in_):
         # TODO don't hard code this!
         in_ = in_.view(-1, 64, 64, self._in_channels)
+        # TODO reducing to single channel, effectively ties
+        # weights when frame-stacking
+        #in_ = torch.mean(in_, dim=-1, keepdim=True)
         in_ = in_.permute(0, 3, 1, 2).contiguous()
         in_ = F.relu(self.conv1(in_))
         in_ = F.relu(self.conv2(in_))

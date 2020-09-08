@@ -46,8 +46,7 @@ def main(env, image, name, seed, gpu, debug, overwrite):
         runner = LocalRunner(snapshot_config=ctxt)
 
         # make the env, given name and whether to use image obs
-        frame_stack = 4
-        env = make_env(env, image, frame_stack)
+        env = make_env(env, image)
 
         # make cnn encoder if learning from images
         cnn_encoder = None
@@ -58,10 +57,10 @@ def main(env, image, name, seed, gpu, debug, overwrite):
         if image:
             # TODO need to put both images through conv!
             print('Using IMAGE observations!')
-            cnn_encoder = CNNEncoder(in_channels=frame_stack,
+            cnn_encoder = CNNEncoder(in_channels=1,
                                         output_dim=256)
             obs_dim = cnn_encoder.output_dim
-            hidden_sizes = [] # linear decoder from conv features
+            hidden_sizes = [256, 256] # linear decoder from conv features
 
         # make mlp to predict actions
         mlp_encoder = GaussianMLPTwoHeadedModule(input_dim=obs_dim * 2,
@@ -70,13 +69,12 @@ def main(env, image, name, seed, gpu, debug, overwrite):
                                                  hidden_nonlinearity=nn.ReLU,
                                                  min_std=np.exp(-20.),
                                                  max_std=np.exp(2.))
-        if image:
-            predictor = ParallelCNNEncoder(cnn_encoder, mlp_encoder)
-        else:
-            predictor = mlp_encoder
+        # predictor will pass inputs through CNN (if images), then though
+        # mlp to predict actions
+        predictor = ParallelCNNEncoder(cnn_encoder, mlp_encoder)
 
         # load saved rb
-        rb_filename = '/home/rakelly/garage/data/local/cheetah/debug_image_17/replay_buffer.pkl'
+        rb_filename = '/home/rakelly/garage/data/local/cheetah/debug_image/replay_buffer.pkl'
         with open(rb_filename, 'rb') as f:
             replay_buffer = pkl.load(f)['replay_buffer']
         f.close()

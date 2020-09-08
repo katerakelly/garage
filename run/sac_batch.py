@@ -46,15 +46,14 @@ def main(env, image, name, seed, gpu, debug, overwrite):
         runner = LocalRunner(snapshot_config=ctxt)
 
         # make the env, given name and whether to use image obs
-        frame_stack = 4
-        env = make_env(env, image, frame_stack)
+        env = make_env(env, image)
 
         # make cnn encoder if learning from images
         cnn_encoder = None
         input_dim = env.spec.observation_space.flat_dim + env.spec.action_space.flat_dim
         if image:
             print('Using IMAGE observations!')
-            cnn_encoder = CNNEncoder(in_channels=frame_stack,
+            cnn_encoder = CNNEncoder(in_channels=1,
                                         output_dim=256)
             input_dim = cnn_encoder.output_dim + env.spec.action_space.flat_dim
 

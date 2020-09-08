@@ -44,8 +44,7 @@ def main(env, image, name, seed, gpu, debug, overwrite):
         runner = LocalRunner(snapshot_config=ctxt)
 
         # make the env, given name and whether to use image obs
-        frame_stack = 4
-        env = make_env(env, image, frame_stack)
+        env = make_env(env, image)
 
         policy = RandomPolicy(env_spec=env.spec)
 

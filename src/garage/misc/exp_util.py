@@ -7,7 +7,10 @@ from garage.envs import GarageEnv, normalize
 from garage.envs.wrappers import Grayscale, Resize, StackFrames, PixelObservationWrapper
 
 
-def make_env(env_name, is_image, frame_stack):
+def make_env(env_name, is_image, frame_stack=1):
+    if frame_stack == 1 and 'cheetah' in env_name:
+        print('this env needs velocity information')
+        raise Exception
     if env_name == 'cheetah':
         env = gym.make('HalfCheetah-v2')
     elif env_name == 'catcher':
@@ -18,7 +21,8 @@ def make_env(env_name, is_image, frame_stack):
         env = PixelObservationWrapper(env)
         env = Grayscale(env)
         env = Resize(env, 64, 64)
-        env = StackFrames(env, frame_stack)
+        if frame_stack > 1:
+            env = StackFrames(env, frame_stack)
         env = GarageEnv(env, is_image=is_image)
         env = normalize(env, normalize_obs=True, image_obs=True, flatten_obs=True)
     else:
