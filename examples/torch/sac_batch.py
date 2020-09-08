@@ -21,7 +21,7 @@ from garage.torch.modules import CNNEncoder
 from garage.torch.policies import TanhGaussianMLPPolicy
 from garage.torch.q_functions import ContinuousMLPQFunction, ContinuousCNNQFunction
 
-def make_env(env_name, is_image):
+def make_env(env_name, is_image, frame_stack):
     if env_name == 'cheetah':
         env = gym.make('HalfCheetah-v2')
     elif env_name == 'catcher':
@@ -32,7 +32,7 @@ def make_env(env_name, is_image):
         env = PixelObservationWrapper(env)
         env = Grayscale(env)
         env = Resize(env, 64, 64)
-        env = StackFrames(env, 4)
+        env = StackFrames(env, frame_stack)
         env = GarageEnv(env, is_image=is_image)
         env = normalize(env, normalize_obs=True, image_obs=True, flatten_obs=True)
     else:
@@ -71,14 +71,15 @@ def main(env, image, name, seed, gpu, debug):
         runner = LocalRunner(snapshot_config=ctxt)
 
         # make the env, given name and whether to use image obs
-        env = make_env(env, image)
+        frame_stack = 4
+        env = make_env(env, image, frame_stack)
 
         # make cnn encoder if learning from images
         cnn_encoder = None
         input_dim = env.spec.observation_space.flat_dim + env.spec.action_space.flat_dim
         if image:
             print('Using IMAGE observations!')
-            cnn_encoder = CNNEncoder(in_channels=4,
+            cnn_encoder = CNNEncoder(in_channels=frame_stack,
                                         output_dim=256)
             input_dim = cnn_encoder.output_dim + env.spec.action_space.flat_dim
 

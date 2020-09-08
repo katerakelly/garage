@@ -13,6 +13,8 @@ class CNNEncoder(nn.Module):
                 in_channels,
                 output_dim):
         super().__init__()
+        self._in_channels = in_channels
+
         # output is batch x feature x 1 x 1 for inputs of 64x64
         self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=5, stride=2, padding=1)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1)
@@ -24,7 +26,7 @@ class CNNEncoder(nn.Module):
 
     def forward(self, in_):
         # TODO don't hard code this!
-        in_ = in_.view(-1, 64, 64, 4)
+        in_ = in_.view(-1, 64, 64, self._in_channels)
         in_ = in_.permute(0, 3, 1, 2).contiguous()
         in_ = F.relu(self.conv1(in_))
         in_ = F.relu(self.conv2(in_))
