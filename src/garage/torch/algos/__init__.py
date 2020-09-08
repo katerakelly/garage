@@ -16,8 +16,11 @@ from garage.torch.algos.sac import SAC
 from garage.torch.algos.discrete_sac import DiscreteSAC
 from garage.torch.algos.mtsac import MTSAC
 from garage.torch.algos.pearl import PEARL
+from garage.torch.algos.collect import DataCollector
+from garage.torch.algos.ul import ULAlgorithm
+from garage.torch.algos.inverse_mi import InverseMI
 
 __all__ = [
     'BC', 'DDPG', 'VPG', 'PPO', 'TRPO', 'MAMLPPO', 'MAMLTRPO', 'MAMLVPG',
-    'MTSAC', 'PEARL', 'SAC', 'DiscreteSAC'
+    'MTSAC', 'PEARL', 'SAC', 'DiscreteSAC', 'DataCollector', 'ULAlgorithm', 'InverseMI',
 ]
