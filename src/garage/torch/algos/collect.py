@@ -41,5 +41,5 @@ class DataCollector(RLAlgorithm):
                              terminal=path['dones'].reshape(-1, 1)))
             runner.step_itr += 1
         # save the replay buffer
-        runner.simple_save(runner.step_itr, {'replay_buffer': self.replay_buffer}, name='replay_buffer')
+        runner.simple_save({'replay_buffer': self.replay_buffer}, name='replay_buffer')
 

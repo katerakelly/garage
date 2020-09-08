@@ -108,6 +108,14 @@ class Snapshotter:
             with open(file_name, 'wb') as file:
                 cloudpickle.dump(params, file)
 
+    def save_once(self, params, name):
+        """
+        Save parameters to name.pkl
+        """
+        file_name = os.path.join(self._snapshot_dir, f'{name}.pkl')
+        with open(file_name, 'wb') as file:
+            cloudpickle.dump(params, file)
+
     def load(self, load_dir, itr='last'):
         # pylint: disable=no-self-use
         """Load one snapshot of parameters from disk.
