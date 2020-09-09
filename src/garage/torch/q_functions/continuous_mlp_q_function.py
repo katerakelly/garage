@@ -23,12 +23,11 @@ class ContinuousMLPQFunction(MLPModule):
             nn_module (nn.Module): Neural network module in PyTorch.
         """
         self._env_spec = env_spec
-        self._obs_dim = env_spec.observation_space.flat_dim
-        self._action_dim = env_spec.action_space.flat_dim
+        self._output_dim = 1
 
         MLPModule.__init__(self,
                            input_dim=input_dim,
-                           output_dim=1,
+                           output_dim=self._output_dim,
                            **kwargs)
 
     def forward(self, observations, actions):
@@ -37,18 +36,22 @@ class ContinuousMLPQFunction(MLPModule):
         return super().forward(_input)
 
 
-class ContinuousCNNQFunction(nn.Module):
+class CompositeQFunction(nn.Module):
     """
-    Q-function network with optional CNN encoder on the front.
+    Q-network composed of more than one nn.Module
     """
 
-    def __init__(self, cnn_encoder, mlp_q):
+    def __init__(self, cnn_encoder, mlp_q, input_action):
         super().__init__()
         self._cnn_encoder = cnn_encoder
         self._mlp_q = mlp_q
+        self._input_action = input_action # whether to take action as input
 
-    def forward(self, observations, actions):
+    def forward(self, observations, actions=None):
         if self._cnn_encoder is not None:
             observations = self._cnn_encoder(observations)
-        return self._mlp_q(observations, actions)
+        if self._input_action:
+            return self._mlp_q(observations, actions)
+        else:
+            return self._mlp_q(observations)
 

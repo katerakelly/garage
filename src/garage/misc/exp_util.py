@@ -7,16 +7,21 @@ from garage.envs import GarageEnv, normalize
 from garage.envs.wrappers import Grayscale, Resize, StackFrames, PixelObservationWrapper
 
 
-def make_env(env_name, is_image, frame_stack=1):
+def make_env(env_name, is_image, discrete, frame_stack=1):
+    # error checking
     if frame_stack == 1 and 'cheetah' in env_name:
         print('this env needs velocity information')
         raise Exception
+    if discrete and 'cheetah' in env_name:
+        print('cheetah is not a discrete env')
+        raise Exception
+
     if env_name == 'cheetah':
         env = gym.make('HalfCheetah-v2')
     elif env_name == 'catcher':
-        env = gym.make('Catcher-PLE-serial-v0')
+        env = gym.make('Catcher-PLE-serial-v0', discrete=discrete)
     elif env_name == 'catcher-short':
-        env = gym.make('Catcher-PLE-serial-short-v0')
+        env = gym.make('Catcher-PLE-serial-short-v0', discrete=discrete)
     if is_image:
         env = PixelObservationWrapper(env)
         env = Grayscale(env)

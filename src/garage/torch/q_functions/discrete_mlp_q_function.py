@@ -12,14 +12,13 @@ class DiscreteMLPQFunction(MLPModule):
     using a fully connected network to model the Q-function.
     """
 
-    def __init__(self, env_spec, **kwargs):
+    def __init__(self, env_spec, input_dim, **kwargs):
         self._env_spec = env_spec
-        self._obs_dim = env_spec.observation_space.flat_dim
-        self._action_dim = env_spec.action_space.flat_dim
+        self._output_dim = env_spec.action_space.flat_dim
 
         MLPModule.__init__(self,
-                           input_dim=self._obs_dim,
-                           output_dim=self._action_dim,
+                           input_dim=input_dim,
+                           output_dim=self._output_dim,
                            **kwargs)
 
     def forward(self, observations):
