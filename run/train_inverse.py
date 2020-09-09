@@ -20,6 +20,7 @@ from garage.misc.exp_util import make_env, make_exp_name
 
 
 @click.command()
+@click.argument('rb')
 @click.option('--env', default='cheetah')
 @click.option('--image', is_flag=True)
 @click.option('--name', default=None)
@@ -27,12 +28,12 @@ from garage.misc.exp_util import make_env, make_exp_name
 @click.option('--gpu', default=0)
 @click.option('--debug', is_flag=True)
 @click.option('--overwrite', is_flag=True)
-def main(env, image, name, seed, gpu, debug, overwrite):
+def main(rb, env, image, name, seed, gpu, debug, overwrite):
     name = make_exp_name(name, debug)
     if debug:
         overwrite = True # always allow overwriting on a debug exp
     @wrap_experiment(prefix=env, name=name, snapshot_mode='none', archive_launch_repo=False, use_existing_dir=overwrite)
-    def train_inverse(ctxt, env, image, seed, gpu):
+    def train_inverse(ctxt, rb, env, image, seed, gpu):
         """Set up environment and algorithm and run the task.
 
         Args:
@@ -74,7 +75,7 @@ def main(env, image, name, seed, gpu, debug, overwrite):
         predictor = ParallelCNNEncoder(cnn_encoder, mlp_encoder)
 
         # load saved rb
-        rb_filename = '/home/rakelly/garage/data/local/cheetah/debug_image/replay_buffer.pkl'
+        rb_filename = '/home/rakelly/garage/data/local/{}/replay_buffer.pkl'.format(rb)
         with open(rb_filename, 'rb') as f:
             replay_buffer = pkl.load(f)['replay_buffer']
         f.close()
