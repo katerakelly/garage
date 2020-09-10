@@ -30,19 +30,24 @@ from garage.misc.exp_util import make_env, make_exp_name
 @click.option('--gpu', default=0)
 @click.option('--debug', is_flag=True)
 @click.option('--overwrite', is_flag=True)
-def main(env, image, discrete, name, seed, gpu, debug, overwrite):
+@click.option('--pretrain', default=None)
+def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain):
     name = make_exp_name(name, debug)
     if debug:
         overwrite = True # always allow overwriting on a debug exp
     @wrap_experiment(prefix=env, name=name, snapshot_mode='none', archive_launch_repo=False, use_existing_dir=overwrite)
-    def sac_batch(ctxt, env, image, discrete, seed, gpu):
+    def sac_batch(ctxt, env, image, discrete, pretrain, seed, gpu):
         """Set up environment and algorithm and run the task.
 
         Args:
             ctxt (garage.experiment.ExperimentContext): The experiment
                 configuration used by LocalRunner to create the snapshotter.
+            env (str): shorthand for which env to create
+            discrete (bool): discrete or continuous action space
+            pretrain (str): ./data/local/{env}/{pretrain}/, the path to load pretrained cnn weights
             seed (int): Used to seed the random number generator to produce
                 determinism.
+            gpu (int): which gpu to use
 
         """
         deterministic.set_seed(seed)
@@ -57,6 +62,10 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite):
             print('Using IMAGE observations!')
             cnn_encoder = CNNEncoder(in_channels=1,
                                         output_dim=256)
+            # optionally load pre-trained weights
+            if pretrain:
+                path_to_weights = f'data/local/{env}/{pretrain}/encoder.pth'
+                cnn_encoder.load_state_dict(torch.load(path_to_weights))
             obs_dim = cnn_encoder.output_dim
 
         # discrete or continuous action space
