@@ -54,7 +54,7 @@ class DiscreteSAC(SAC):
         q1_pred = self._qf1(obs).gather(dim=-1, index=actions)
         q2_pred = self._qf2(obs).gather(dim=-1, index=actions)
 
-        pi = self.policy(next_obs)[0].probs # batch x action_dim of softmax values
+        pi = self.policy(next_obs)[0] # batch x action_dim of softmax values
         # don't take a log of 0!
         zero_locs = pi == 0.0
         zero_locs = zero_locs.float() * 1e-8
@@ -91,8 +91,7 @@ class DiscreteSAC(SAC):
 
         # just do this once here to avoid another forward call
         # when performing alpha update
-        pi_dist = self.policy(obs)[0]
-        pi = pi_dist.probs
+        pi = self.policy(obs)[0]
         # don't take a log of 0!
         zero_locs = pi == 0.0
         zero_locs = zero_locs.float() * 1e-8
@@ -111,6 +110,7 @@ class DiscreteSAC(SAC):
             alpha_loss.backward()
             self._alpha_optimizer.step()
 
+        pi_dist = torch.distributions.Categorical(probs=pi)
         policy_entropy = pi_dist.entropy()
 
         return policy_loss, qf1_loss, qf2_loss, policy_entropy

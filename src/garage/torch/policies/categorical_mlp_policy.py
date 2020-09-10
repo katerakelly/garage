@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from torch import nn
 
+from garage.torch import global_device
 from garage.torch.modules import MLPModule
 from garage.torch.policies.stochastic_policy import StochasticPolicy
 
@@ -57,7 +58,7 @@ class CategoricalMLPPolicy(StochasticPolicy):
             hidden_nonlinearity=hidden_nonlinearity,
             hidden_w_init=hidden_w_init,
             hidden_b_init=hidden_b_init,
-            output_nonlinearity=torch.nn.Softmax, # softmax output!
+            output_nonlinearity=None,
             output_w_init=output_w_init,
             output_b_init=output_b_init,
             layer_normalization=layer_normalization)
@@ -75,22 +76,41 @@ class CategoricalMLPPolicy(StochasticPolicy):
 
         """
         probs = self._module(observations)
-        dist = torch.distributions.Categorical(probs=probs)
-        return dist, {}
+        probs = torch.softmax(probs, dim=-1)
+        return probs, {}
 
     def _index_to_one_hot(self, arr):
+        # turn actions into 1-hot vectors of length action_dim
+        # to respect replay buffer interface
         one_hot = np.zeros((arr.size, self._action_dim))
         one_hot[np.arange(arr.size), arr] = 1
         return one_hot
 
     def get_action(self, observation):
-        action, info = super().get_action(observation)
-        # turn actions into 1-hot vectors of length action_dim
-        # to respect replay buffer interface
+        with torch.no_grad():
+            if not isinstance(observation, torch.Tensor):
+                observation = torch.as_tensor(observation).float().to(
+                    global_device())
+            observation = observation.unsqueeze(0)
+            probs, info = self.forward(observation)
+            dist = torch.distributions.Categorical(probs=probs)
+            action, info = dist.sample().squeeze(0).cpu().numpy(), {
+                k: v.squeeze(0).detach().cpu().numpy()
+                for (k, v) in info.items()
+            }
         one_hot_action = self._index_to_one_hot(action).squeeze(0)
         return one_hot_action, info
 
     def get_actions(self, observations):
-        actions, info = super().get_actions(observations)
+        with torch.no_grad():
+            if not isinstance(observations, torch.Tensor):
+                observations = torch.as_tensor(observations).float().to(
+                    global_device())
+            probs, info = self.forward(observations)
+            dist = torch.distributions.Categorical(probs=probs)
+            actions, info = dist.sample().cpu().numpy(), {
+                k: v.detach().cpu().numpy()
+                for (k, v) in info.items()
+            }
         one_hot_actions = self._index_to_one_hot(actions)
         return one_hot_actions, info
