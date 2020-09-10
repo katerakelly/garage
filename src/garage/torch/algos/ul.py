@@ -30,6 +30,8 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
             for _ in range(self._steps_per_epoch):
                 obj_loss = self.train_once()
             self._log_statistics(obj_loss)
+            # save conv encoder weights!
+            runner.save_state_dict(self.predictor._cnn_encoder, 'encoder')
             runner.step_itr += 1
 
     def train_once(self):

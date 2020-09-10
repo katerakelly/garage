@@ -3,6 +3,7 @@ import collections
 import errno
 import os
 import pathlib
+import torch
 
 import cloudpickle
 
@@ -109,12 +110,15 @@ class Snapshotter:
                 cloudpickle.dump(params, file)
 
     def save_once(self, params, name):
-        """
-        Save parameters to name.pkl
-        """
+        """ Save parameters to name.pkl """
         file_name = os.path.join(self._snapshot_dir, f'{name}.pkl')
         with open(file_name, 'wb') as file:
             cloudpickle.dump(params, file)
+
+    def save_state_dict(self, model, name):
+        """ Save torch model state dict """
+        file_name = os.path.join(self._snapshot_dir, f'{name}.pth')
+        torch.save(model.state_dict(), file_name)
 
     def load(self, load_dir, itr='last'):
         # pylint: disable=no-self-use

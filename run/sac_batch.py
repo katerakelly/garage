@@ -65,8 +65,10 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain):
                                         output_dim=256)
             # optionally load pre-trained weights
             if pretrain:
-                path_to_weights = f'data/local/{env}/{pretrain}/encoder.pth'
+                print('Loading pre-trained weights from {}...'.format(pretrain))
+                path_to_weights = f'data/local/{env_name}/{pretrain}/encoder.pth'
                 cnn_encoder.load_state_dict(torch.load(path_to_weights))
+                print('Success!')
             obs_dim = cnn_encoder.output_dim
 
         # discrete or continuous action space
@@ -134,6 +136,6 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain):
         runner.setup(algo=sac, env=env, sampler_cls=LocalSampler)
         runner.train(n_epochs=1000, batch_size=1000)
 
-    sac_batch(env=env, image=image, discrete=discrete, seed=seed, gpu=gpu)
+    sac_batch(env=env, image=image, discrete=discrete, seed=seed, gpu=gpu, pretrain=pretrain)
 
 main()

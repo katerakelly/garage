@@ -77,7 +77,7 @@ def main(rb, env, image, discrete, name, seed, gpu, debug, overwrite):
         predictor = ParallelCNNEncoder(cnn_encoder, mlp_encoder)
 
         # load saved rb
-        rb_filename = '/home/rakelly/garage/data/local/{}/replay_buffer.pkl'.format(rb)
+        rb_filename = f'data/local/{env_name}/{rb}/replay_buffer.pkl'
         with open(rb_filename, 'rb') as f:
             replay_buffer = pkl.load(f)['replay_buffer']
         f.close()

@@ -394,6 +394,10 @@ class LocalRunner:
         logger.log('Saving: {}'.format(params.keys()))
         self._snapshotter.save_once(params, name)
 
+    def save_state_dict(self, model, name='torch_state_dict'):
+        logger.log('Saving:{}'.format(name))
+        self._snapshotter.save_state_dict(model, name)
+
     def restore(self, from_dir, from_epoch='last'):
         """Restore experiment from snapshot.
 
