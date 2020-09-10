@@ -54,7 +54,8 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain):
         runner = LocalRunner(snapshot_config=ctxt)
 
         # make the env, given name and whether to use image obs
-        env = make_env(env, image, discrete)
+        env_name = env
+        env = make_env(env_name, image, discrete)
 
         # make cnn encoder if learning from images
         cnn_encoder = None

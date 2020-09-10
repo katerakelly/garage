@@ -18,19 +18,20 @@ from garage.misc.exp_util import make_env, make_exp_name
 
 
 @click.command()
-@click.option('--env', default='cheetah')
+@click.option('--env', default='catcher')
 @click.option('--image', is_flag=True)
+@click.option('--discrete', is_flag=True)
 @click.option('--name', default=None)
 @click.option('--seed', default=1)
 @click.option('--gpu', default=0)
 @click.option('--debug', is_flag=True)
 @click.option('--overwrite', is_flag=True)
-def main(env, image, name, seed, gpu, debug, overwrite):
+def main(env, image, discrete, name, seed, gpu, debug, overwrite):
     name = make_exp_name(name, debug)
     if debug:
         overwrite = True # always allow overwriting on a debug exp
     @wrap_experiment(prefix=env, name=name, snapshot_mode='none', archive_launch_repo=False, use_existing_dir=overwrite)
-    def collect_data(ctxt, env, image, seed, gpu):
+    def collect_data(ctxt, env, image, discrete, seed, gpu):
         """Set up environment and algorithm and run the task.
 
         Args:
@@ -44,7 +45,7 @@ def main(env, image, name, seed, gpu, debug, overwrite):
         runner = LocalRunner(snapshot_config=ctxt)
 
         # make the env, given name and whether to use image obs
-        env = make_env(env, image)
+        env = make_env(env, image, discrete)
 
         policy = RandomPolicy(env_spec=env.spec)
 
@@ -65,6 +66,6 @@ def main(env, image, name, seed, gpu, debug, overwrite):
         # the first iteration, batch_size will be overridden by min_buffer_size specified in algo
         runner.train(n_epochs=1, batch_size=1) # add arg store_paths=True to store collected samples. samples from each iter will be saved by snapshotter, but will be organized per itr collected. can we instead add the replay buffer to the list of things to be snapshotted?
 
-    collect_data(env=env, image=image, seed=seed, gpu=gpu)
+    collect_data(env=env, image=image, discrete=discrete, seed=seed, gpu=gpu)
 
 main()
