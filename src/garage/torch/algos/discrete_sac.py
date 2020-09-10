@@ -18,7 +18,10 @@ class DiscreteSAC(SAC):
         super().__init__(*args, **kwargs)
         if self._use_automatic_entropy_tuning:
             # TODO this is hacked for the catcher env
-            self._target_entropy = -np.log(1.0 / 3.0) * 0.98
+            #self._target_entropy = -np.log(1.0 / 3.0) * 0.98
+            self._target_entropy = -np.prod(
+                self.env_spec.action_space.shape).item()
+            print('Target entropy:', self._target_entropy)
 
     def _temperature_objective(self, pi, log_pi, samples_data):
         alpha_loss = 0
