@@ -49,6 +49,10 @@ class PygameCatcherEnv(CatcherEnv, Serializable):
             action = np.argmax(action)
         return super().step(action)
 
+    def render(self, mode='rgb_array', **kwargs):
+        # don't pass other keyword args which are not supported
+        return super().render(mode=mode)
+
 
 class PygameCatcherShortEnv(PygameCatcherEnv, Serializable):
     """
