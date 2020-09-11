@@ -59,8 +59,8 @@ class PygameCatcherShortEnv(PygameCatcherEnv, Serializable):
     catcher game modified to end episode when fruit is caught
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, discrete, *args, **kwargs):
+        super().__init__(discrete, *args, **kwargs)
         self.quick_init(locals())
 
     def step(self, action):
