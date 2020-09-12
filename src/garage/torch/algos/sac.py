@@ -111,6 +111,7 @@ class SAC(RLAlgorithm):
             num_evaluation_trajectories=10,
             eval_env=None,
             cnn_encoder=None,
+            train_cnn=True,
     ):
 
         self._qf1 = qf1
@@ -150,10 +151,15 @@ class SAC(RLAlgorithm):
         self._qf2_optimizer = self._optimizer(self._qf2.parameters(),
                                               lr=self._qf_lr)
         self._cnn = None
+        self._train_cnn = train_cnn
         if cnn_encoder is not None:
             self._cnn = cnn_encoder
             # TODO using QF learning rate here
-            self._cnn_optimizer = self._optimizer(self._cnn.parameters(), lr=self._qf_lr)
+            if self._train_cnn:
+                print('creating CNN optimizer')
+                self._cnn_optimizer = self._optimizer(self._cnn.parameters(), lr=self._qf_lr)
+            else:
+                print('CNN will not be optimized')
         # automatic entropy coefficient tuning
         self._use_automatic_entropy_tuning = fixed_alpha is None
         self._fixed_alpha = fixed_alpha
@@ -420,7 +426,7 @@ class SAC(RLAlgorithm):
         qf1_loss, qf2_loss = self._critic_objective(samples_data)
 
         # train the encoder with the Q-network
-        if self._cnn is not None:
+        if self._cnn is not None and self._train_cnn:
             self._cnn_optimizer.zero_grad()
 
         self._qf1_optimizer.zero_grad()
@@ -431,7 +437,7 @@ class SAC(RLAlgorithm):
         qf2_loss.backward()
         self._qf2_optimizer.step()
 
-        if self._cnn is not None:
+        if self._cnn is not None and self._train_cnn:
             self._cnn_optimizer.step()
 
         action_dists = self.policy(obs)[0]

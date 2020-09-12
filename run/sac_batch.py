@@ -31,12 +31,13 @@ from garage.misc.exp_util import make_env, make_exp_name
 @click.option('--debug', is_flag=True)
 @click.option('--overwrite', is_flag=True)
 @click.option('--pretrain', default=None)
-def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain):
+@click.option('--train_cnn', is_flag=True)
+def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain, train_cnn):
     name = make_exp_name(name, debug)
     if debug:
         overwrite = True # always allow overwriting on a debug exp
     @wrap_experiment(prefix=env, name=name, snapshot_mode='none', archive_launch_repo=False, use_existing_dir=overwrite)
-    def sac_batch(ctxt, env, image, discrete, pretrain, seed, gpu):
+    def sac_batch(ctxt, env, image, discrete, pretrain, train_cnn, seed, gpu):
         """Set up environment and algorithm and run the task.
 
         Args:
@@ -127,7 +128,8 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain):
                 buffer_batch_size=256,
                 reward_scale=100.,
                 steps_per_epoch=1,
-                cnn_encoder=cnn_encoder)
+                cnn_encoder=cnn_encoder,
+                train_cnn=train_cnn)
 
         if torch.cuda.is_available():
             set_gpu_mode(True, gpu_id=gpu)
@@ -137,6 +139,6 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain):
         runner.setup(algo=sac, env=env, sampler_cls=LocalSampler)
         runner.train(n_epochs=1000, batch_size=1000)
 
-    sac_batch(env=env, image=image, discrete=discrete, seed=seed, gpu=gpu, pretrain=pretrain)
+    sac_batch(env=env, image=image, discrete=discrete, seed=seed, gpu=gpu, pretrain=pretrain, train_cnn=train_cnn)
 
 main()
