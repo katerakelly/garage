@@ -18,9 +18,9 @@ from garage.torch.algos.mtsac import MTSAC
 from garage.torch.algos.pearl import PEARL
 from garage.torch.algos.collect import DataCollector
 from garage.torch.algos.ul import ULAlgorithm
-from garage.torch.algos.inverse_mi import InverseMI
+from garage.torch.algos.inverse_mi import InverseMI, StateDecoder
 
 __all__ = [
     'BC', 'DDPG', 'VPG', 'PPO', 'TRPO', 'MAMLPPO', 'MAMLTRPO', 'MAMLVPG',
-    'MTSAC', 'PEARL', 'SAC', 'DiscreteSAC', 'DataCollector', 'ULAlgorithm', 'InverseMI',
+    'MTSAC', 'PEARL', 'SAC', 'DiscreteSAC', 'DataCollector', 'ULAlgorithm', 'InverseMI', 'StateDecoder',
 ]

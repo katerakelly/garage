@@ -42,3 +42,23 @@ class InverseMI(ULAlgorithm):
 
         return loss
 
+
+class StateDecoder(ULAlgorithm):
+    """
+    Debugging algorithm that regresses observations to true state
+    """
+
+    def optimize_predictor(self, samples_data):
+        obs = samples_data['observation']
+        state = samples_data['env_info']
+
+        # compute the loss
+        pred_state = self.predictor([obs])
+        loss = F.mse_loss(pred_state.flatten(), state.flatten())
+
+        # optimize the predictor
+        self._predictor_optimizer.zero_grad()
+        loss.backward()
+        self._predictor_optimizer.step()
+
+        return loss

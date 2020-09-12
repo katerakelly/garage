@@ -38,7 +38,9 @@ class DataCollector(RLAlgorithm):
                              action=path['actions'],
                              reward=path['rewards'].reshape(-1, 1),
                              next_observation=path['next_observations'],
-                             terminal=path['dones'].reshape(-1, 1)))
+                             terminal=path['dones'].reshape(-1, 1),
+                             # this is a little weird, but garage doesn't handle dicts well right now
+                             env_info=path['env_infos']['state']))
             runner.step_itr += 1
         # save the replay buffer
         runner.simple_save({'replay_buffer': self.replay_buffer}, name='replay_buffer')
