@@ -59,6 +59,7 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain):
 
         # make cnn encoder if learning from images
         cnn_encoder = None
+        obs_dim = env.spec.observation_space.flat_dim
         if image:
             print('Using IMAGE observations!')
             cnn_encoder = CNNEncoder(in_channels=1,
@@ -81,7 +82,7 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain):
                 hidden_sizes=[256, 256],
                 hidden_nonlinearity=nn.ReLU,
             )
-            qf_input_dim = env.spec.observation_space.flat_dim
+            qf_input_dim = obs_dim
 
         else:
             q_function = ContinuousMLPQFunction
@@ -96,7 +97,7 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain):
                 max_std=np.exp(2.),
                 cnn_encoder=cnn_encoder,
             )
-            qf_input_dim = env.spec.observation_space.flat_dim + env.spec.action_space.flat_dim
+            qf_input_dim = obs_dim + env.spec.action_space.flat_dim
 
         # make Q functions, rb, and algo
         qf1_mlp = q_function(env_spec=env.spec,
