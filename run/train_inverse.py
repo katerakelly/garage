@@ -15,7 +15,7 @@ from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
 from garage.torch.modules import CNNEncoder, ParallelCNNEncoder
 from garage.torch.algos import InverseMI
-from garage.torch.modules import GaussianMLPTwoHeadedModule
+from garage.torch.modules import GaussianMLPTwoHeadedModule, MLPModule
 from garage.misc.exp_util import make_env, make_exp_name
 
 
@@ -63,15 +63,13 @@ def main(rb, env, image, discrete, name, seed, gpu, debug, overwrite):
             cnn_encoder = CNNEncoder(in_channels=1,
                                         output_dim=256)
             obs_dim = cnn_encoder.output_dim
-            hidden_sizes = [256, 256] # linear decoder from conv features
+            hidden_sizes = [] # linear decoder from conv features
 
         # make mlp to predict actions
-        mlp_encoder = GaussianMLPTwoHeadedModule(input_dim=obs_dim * 2,
-                                                 output_dim=action_dim,
-                                                 hidden_sizes=hidden_sizes,
-                                                 hidden_nonlinearity=nn.ReLU,
-                                                 min_std=np.exp(-20.),
-                                                 max_std=np.exp(2.))
+        mlp_encoder = MLPModule(input_dim=obs_dim * 2,
+                                output_dim=action_dim,
+                                hidden_sizes=hidden_sizes,
+                                hidden_nonlinearity=nn.ReLU)
         # predictor will pass inputs through CNN (if images), then though
         # mlp to predict actions
         predictor = ParallelCNNEncoder(cnn_encoder, mlp_encoder)
@@ -88,6 +86,7 @@ def main(rb, env, image, discrete, name, seed, gpu, debug, overwrite):
         # construct algo and train!
         algo = InverseMI(predictor,
                          replay_buffer,
+                         discrete=discrete,
                          lr=1e-2,
                          buffer_batch_size=256)
 
