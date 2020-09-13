@@ -42,6 +42,18 @@ class InverseMI(ULAlgorithm):
 
         return loss
 
+    def evaluate(self, samples_data):
+        obs = samples_data['observation']
+        next_obs = samples_data['next_observation']
+        actions = samples_data['action']
+
+        if not self._discrete:
+            raise NotImplementedError
+        pred_actions = torch.argmax(self.predictor([obs, next_obs]), dim=-1)
+        actions = torch.argmax(actions, dim=-1)
+        correct = (actions == pred_actions).sum().item()
+        return correct / len(actions)
+
 
 class StateDecoder(ULAlgorithm):
     """
