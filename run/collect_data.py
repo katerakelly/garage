@@ -54,7 +54,7 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite):
         replay_buffer = PathBuffer(capacity_in_transitions=num_collect)
 
         # set min buffer size to num_collect in order to collect in a single epoch
-        algo = DataCollector(policy, replay_buffer, steps_per_epoch=1, max_path_length=500, min_buffer_size=num_collect)
+        algo = DataCollector(policy, replay_buffer, steps_per_epoch=1, max_path_length=500, min_buffer_size=num_collect, image=image)
 
         if torch.cuda.is_available():
             set_gpu_mode(True, gpu_id=gpu)

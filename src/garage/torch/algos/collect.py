@@ -6,12 +6,13 @@ class DataCollector(RLAlgorithm):
     Class that executes a policy and saves the data
     """
 
-    def __init__(self, policy, replay_buffer, steps_per_epoch, max_path_length, min_buffer_size=int(1e4)):
+    def __init__(self, policy, replay_buffer, steps_per_epoch, max_path_length, min_buffer_size=int(1e4), image=False):
         self.policy = policy
         self.replay_buffer = replay_buffer
         self._steps_per_epoch = steps_per_epoch
         self.max_path_length = max_path_length
         self._min_buffer_size = min_buffer_size
+        self._image = image
 
     def train(self, runner):
         """
@@ -33,14 +34,16 @@ class DataCollector(RLAlgorithm):
                 runner.step_path = runner.obtain_samples(
                     runner.step_itr, batch_size)
                 for path in runner.step_path:
-                    self.replay_buffer.add_path(
-                        dict(observation=path['observations'],
+                    d = dict(observation=path['observations'],
                              action=path['actions'],
                              reward=path['rewards'].reshape(-1, 1),
                              next_observation=path['next_observations'],
-                             terminal=path['dones'].reshape(-1, 1),
-                             # this is a little weird, but garage doesn't handle dicts well right now
-                             env_info=path['env_infos']['state']))
+                             terminal=path['dones'].reshape(-1, 1))
+                    if self._image:
+                        # garage doesn't handle dicts well right now
+                        d['env_info'] = path['env_infos']['state']
+                    self.replay_buffer.add_path(d)
+
             runner.step_itr += 1
         # save the replay buffer
         runner.simple_save({'replay_buffer': self.replay_buffer}, name='replay_buffer')
