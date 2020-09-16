@@ -65,7 +65,8 @@ class PygameCatcherShortEnv(PygameCatcherEnv, Serializable):
 
     def step(self, action):
         ob, reward, done, info = super().step(action)
-        done = reward > 0
+        # end episode after catching attempt (success or failure)
+        done = reward != 0
         return ob, reward, done, info
 
 
