@@ -145,7 +145,7 @@ class SAC(RLAlgorithm):
         self._target_qf1 = copy.deepcopy(self._qf1)
         self._target_qf2 = copy.deepcopy(self._qf2)
         # NOTE don't train CNN with policy gradients!!
-        self._policy_optimizer = self._optimizer(self.policy.parameters(), lr=self._policy_lr)
+        self._policy_optimizer = self._optimizer(self.policy._module.parameters(), lr=self._policy_lr)
         self._cnn = None
         self._train_cnn = train_cnn
         if cnn_encoder is not None:
