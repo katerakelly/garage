@@ -473,6 +473,7 @@ class SAC(RLAlgorithm):
         eval_trajectories = obtain_evaluation_samples(
             self.policy,
             self._eval_env,
+            max_path_length=self.max_path_length,
             num_trajs=self._num_evaluation_trajectories)
         last_return = log_performance(epoch,
                                       eval_trajectories,
