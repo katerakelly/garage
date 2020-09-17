@@ -74,3 +74,12 @@ class StateDecoder(ULAlgorithm):
         self._predictor_optimizer.step()
 
         return loss
+
+    def evaluate(self, samples_data):
+        """ report mean squared error """
+        obs = samples_data['observation']
+        state = samples_data['env_info']
+
+        pred_state = self.predictor([obs])
+        mse = F.mse_loss(pred_state.flatten(), state.flatten())
+        return mse.item()
