@@ -128,7 +128,6 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain, trai
                 buffer_batch_size=256,
                 reward_scale=100.,
                 steps_per_epoch=1,
-                cnn_encoder=cnn_encoder,
                 train_cnn=train_cnn)
 
         if torch.cuda.is_available():

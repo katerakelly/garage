@@ -110,7 +110,6 @@ class SAC(RLAlgorithm):
             steps_per_epoch=1,
             num_evaluation_trajectories=10,
             eval_env=None,
-            cnn_encoder=None,
             train_cnn=True,
     ):
 
@@ -144,20 +143,18 @@ class SAC(RLAlgorithm):
         # use 2 target q networks
         self._target_qf1 = copy.deepcopy(self._qf1)
         self._target_qf2 = copy.deepcopy(self._qf2)
-        # NOTE don't train CNN with policy gradients!!
+
+        # Set up the optimizers, with special care for convnet!
+        # NOTE never train CNN with policy gradients!!
         self._policy_optimizer = self._optimizer(self.policy._module.parameters(), lr=self._policy_lr)
-        self._cnn = None
-        self._train_cnn = train_cnn
-        if cnn_encoder is not None:
-            self._cnn = cnn_encoder
-        q1_params = list(self._qf1.parameters())
-        if self._train_cnn is not None:
-            q1_params += list(self._cnn.parameters())
+        if train_cnn:
+            print('CNN will be optimized by Q-loss')
+            q1_params = self._qf1.parameters()
+            q2_params = self._qf2.parameters()
         else:
             print('CNN will not be optimized')
-        q2_params = list(self._qf2.parameters())
-        if self._train_cnn is not None:
-            q2_params += list(self._cnn.parameters())
+            q1_params = self._qf1._mlp_q.parameters()
+            q2_params = self._qf2._mlp_q.parameters()
         self._qf1_optimizer = self._optimizer(q1_params,
                                               lr=self._qf_lr)
         self._qf2_optimizer = self._optimizer(q2_params,
