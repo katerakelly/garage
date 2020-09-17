@@ -13,8 +13,8 @@ from garage.experiment import deterministic, LocalRunner
 from garage.replay_buffer import PathBuffer
 from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
-from garage.torch.modules import CNNEncoder, ParallelCNNEncoder
-from garage.torch.algos import InverseMI
+from garage.torch.modules import CNNEncoder
+from garage.torch.algos import InverseMI, ULAlgorithm
 from garage.torch.modules import GaussianMLPTwoHeadedModule, MLPModule
 from garage.misc.exp_util import make_env, make_exp_name
 
@@ -58,7 +58,6 @@ def main(rb, env, image, discrete, name, seed, gpu, debug, overwrite):
         hidden_sizes = [256, 256]
 
         if image:
-            # TODO need to put both images through conv!
             print('Using IMAGE observations!')
             cnn_encoder = CNNEncoder(in_channels=1,
                                         output_dim=256)
@@ -70,9 +69,9 @@ def main(rb, env, image, discrete, name, seed, gpu, debug, overwrite):
                                 output_dim=action_dim,
                                 hidden_sizes=hidden_sizes,
                                 hidden_nonlinearity=nn.ReLU)
-        # predictor will pass inputs through CNN (if images), then though
+        # pass inputs through CNN (if images), then though
         # mlp to predict actions
-        predictor = ParallelCNNEncoder(cnn_encoder, mlp_encoder)
+        predictors = {'InverseMI': InverseMI(cnn_encoder, mlp_encoder, discrete=discrete)}
 
         # load saved rb
         rb_filename = f'data/local/{env_name}/{rb}/replay_buffer.pkl'
@@ -84,11 +83,10 @@ def main(rb, env, image, discrete, name, seed, gpu, debug, overwrite):
         assert len(test_obs.flatten()) == env.spec.observation_space.flat_dim
 
         # construct algo and train!
-        algo = InverseMI(predictor,
-                         replay_buffer,
-                         discrete=discrete,
-                         lr=1e-2,
-                         buffer_batch_size=256)
+        algo = ULAlgorithm(predictors,
+                           replay_buffer,
+                           lr=1e-2,
+                           buffer_batch_size=256)
 
         if torch.cuda.is_available():
             set_gpu_mode(True, gpu_id=gpu)
