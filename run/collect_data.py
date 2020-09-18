@@ -51,7 +51,7 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite):
         policy = RandomPolicy(env_spec=env.spec)
 
         # if collecting images, do not make this too large, or will get a memory error
-        num_collect = int(1e4)
+        num_collect = int(5e4)
         replay_buffer = PathBuffer(capacity_in_transitions=num_collect)
 
         # set min buffer size to num_collect in order to collect in a single epoch
