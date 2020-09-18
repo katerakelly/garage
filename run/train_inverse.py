@@ -65,21 +65,22 @@ def main(rb, env, algo, image, discrete, name, seed, gpu, debug, overwrite):
             obs_dim = cnn_encoder.output_dim
             hidden_sizes = [] # linear decoder from conv features
 
-        # make mlp to predict actions
-        action_mlp = MLPModule(input_dim=obs_dim * 2,
-                                output_dim=action_dim,
-                                hidden_sizes=hidden_sizes,
-                                hidden_nonlinearity=nn.ReLU)
-        # pass inputs through CNN (if images), then though
-        # mlp to predict actions
-        if algo == 'inverse':
-            predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete)}
-        elif algo == 'inverse-reward':
-            reward_mlp = MLPModule(input_dim=obs_dim,
-                                    output_dim=1,
+        if 'inverse' in algo:
+            # make mlp to predict actions
+            action_mlp = MLPModule(input_dim=obs_dim * 2,
+                                    output_dim=action_dim,
                                     hidden_sizes=hidden_sizes,
                                     hidden_nonlinearity=nn.ReLU)
-            predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete), 'RewardDecode': RewardDecoder(cnn_encoder, reward_mlp)}
+            # pass inputs through CNN (if images), then though
+            # mlp to predict actions
+            if algo == 'inverse':
+                predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete)}
+            elif algo == 'inverse-reward':
+                reward_mlp = MLPModule(input_dim=obs_dim,
+                                        output_dim=1,
+                                        hidden_sizes=hidden_sizes,
+                                        hidden_nonlinearity=nn.ReLU)
+                predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete), 'RewardDecode': RewardDecoder(cnn_encoder, reward_mlp)}
         elif algo == 'cpc':
             predictors = {'CPC': CPC(cnn_encoder, None)}
         else:
