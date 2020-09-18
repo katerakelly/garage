@@ -95,8 +95,8 @@ class Regressor(Predictor):
         target = samples_data[self._data_key]
 
         # compute the loss
-        pred_state = self.forward([obs])
-        loss = F.mse_loss(pred_state.flatten(), state.flatten())
+        pred = self.forward([obs])
+        loss = F.mse_loss(pred.flatten(), target.flatten())
 
         return loss
 
@@ -105,9 +105,9 @@ class Regressor(Predictor):
         obs = samples_data['observation']
         state = samples_data[self._data_key]
 
-        pred_state = self.model([obs])
+        pred_state = self.forward([obs])
         mse = F.mse_loss(pred_state.flatten(), state.flatten())
-        return {'MSE', mse.item()}
+        return {'MSE': mse.item()}
 
 
 class RewardDecoder(Regressor):

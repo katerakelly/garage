@@ -14,14 +14,15 @@ from garage.replay_buffer import PathBuffer
 from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
 from garage.torch.modules import CNNEncoder
-from garage.torch.algos import InverseMI, ULAlgorithm
+from garage.torch.algos import InverseMI, ULAlgorithm, RewardDecoder
 from garage.torch.modules import GaussianMLPTwoHeadedModule, MLPModule
 from garage.misc.exp_util import make_env, make_exp_name
 
 
 @click.command()
-@click.argument('rb')
+@click.option('--rb', default=None)
 @click.option('--env', default='catcher')
+@click.option('--algo', default=None)
 @click.option('--image', is_flag=True)
 @click.option('--discrete', is_flag=True)
 @click.option('--name', default=None)
@@ -29,12 +30,12 @@ from garage.misc.exp_util import make_env, make_exp_name
 @click.option('--gpu', default=0)
 @click.option('--debug', is_flag=True)
 @click.option('--overwrite', is_flag=True)
-def main(rb, env, image, discrete, name, seed, gpu, debug, overwrite):
+def main(rb, env, algo, image, discrete, name, seed, gpu, debug, overwrite):
     name = make_exp_name(name, debug)
     if debug:
         overwrite = True # always allow overwriting on a debug exp
     @wrap_experiment(prefix=env, name=name, snapshot_mode='last', archive_launch_repo=False, use_existing_dir=overwrite)
-    def train_inverse(ctxt, rb, env, image, discrete, seed, gpu):
+    def train_inverse(ctxt, rb, env, algo, image, discrete, seed, gpu):
         """Set up environment and algorithm and run the task.
 
         Args:
@@ -65,13 +66,23 @@ def main(rb, env, image, discrete, name, seed, gpu, debug, overwrite):
             hidden_sizes = [] # linear decoder from conv features
 
         # make mlp to predict actions
-        mlp_encoder = MLPModule(input_dim=obs_dim * 2,
+        action_mlp = MLPModule(input_dim=obs_dim * 2,
                                 output_dim=action_dim,
                                 hidden_sizes=hidden_sizes,
                                 hidden_nonlinearity=nn.ReLU)
         # pass inputs through CNN (if images), then though
         # mlp to predict actions
-        predictors = {'InverseMI': InverseMI(cnn_encoder, mlp_encoder, discrete=discrete)}
+        if algo == 'inverse':
+            predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete)}
+        elif algo == 'inverse-reward':
+            reward_mlp = MLPModule(input_dim=obs_dim,
+                                    output_dim=1,
+                                    hidden_sizes=hidden_sizes,
+                                    hidden_nonlinearity=nn.ReLU)
+            predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete), 'RewardDecode': RewardDecoder(cnn_encoder, reward_mlp)}
+        else:
+            print('Algorithm {} not implemented.'.format(algo))
+            raise NotImplementedError
 
         # load saved rb
         rb_filename = f'data/local/{env_name}/{rb}/replay_buffer.pkl'
@@ -96,6 +107,6 @@ def main(rb, env, image, discrete, name, seed, gpu, debug, overwrite):
         runner.setup(algo=algo, env=env)
         runner.train(n_epochs=1000, batch_size=1000)
 
-    train_inverse(rb=rb, env=env, image=image, discrete=discrete, seed=seed, gpu=gpu)
+    train_inverse(rb=rb, env=env, algo=algo, image=image, discrete=discrete, seed=seed, gpu=gpu)
 
 main()
