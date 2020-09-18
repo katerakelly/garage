@@ -177,6 +177,22 @@ class RewardDecoder(Regressor):
     def _data_key(self):
         return 'reward'
 
+    def evaluate(self, samples_data):
+        obs = samples_data['observation']
+        reward = samples_data[self._data_key].cpu().numpy()
+        pred = self.forward([obs]).detach().cpu().numpy()
+
+        # separate metric by reward value (since there are only a few)
+        reward_vals = np.unique(reward)
+        eval_dict = {}
+        for r in reward_vals:
+            a = reward[reward == r]
+            b = pred[reward == r]
+            mse = np.square(a - b).mean()
+            eval_dict['Reward{}'.format(r)] = mse
+
+        return eval_dict
+
 
 class StateDecoder(Regressor):
     """
