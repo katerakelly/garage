@@ -34,6 +34,7 @@ from garage.misc.exp_util import make_env, make_exp_name
 @click.option('--train_cnn', is_flag=True)
 def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain, train_cnn):
     name = make_exp_name(name, debug)
+    name = f'rl/{name}'
     if debug:
         overwrite = True # always allow overwriting on a debug exp
     @wrap_experiment(prefix=env, name=name, snapshot_mode='none', archive_launch_repo=False, use_existing_dir=overwrite)
@@ -68,7 +69,7 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain, trai
             # optionally load pre-trained weights
             if pretrain:
                 print('Loading pre-trained weights from {}...'.format(pretrain))
-                path_to_weights = f'data/local/{env_name}/{pretrain}/encoder.pth'
+                path_to_weights = f'output/{env_name}/ul/{pretrain}/encoder.pth'
                 cnn_encoder.load_state_dict(torch.load(path_to_weights))
                 print('Success!')
             obs_dim = cnn_encoder.output_dim

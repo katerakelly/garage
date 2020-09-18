@@ -135,7 +135,7 @@ class ExperimentTemplate:
     a class.
 
     Note that the full path that will be created is
-    f'{data}/local/{prefix}/{name}'.
+    GARAGE_ROOT/output/{prefix}/{name}'.
 
     Args:
         function (callable or None): The experiment function to wrap.
@@ -296,8 +296,8 @@ class ExperimentTemplate:
         name = cls._augment_name(options, name, kwargs)
         log_dir = options['log_dir']
         if log_dir is None:
-            log_dir = ('{data}/local/{prefix}/{name}'.format(
-                data=os.path.join(os.getcwd(), 'data'),
+            log_dir = ('{data}/{prefix}/{name}'.format(
+                data=os.path.join(os.getcwd(), 'output'),
                 prefix=options['prefix'],
                 name=name))
         if options['use_existing_dir']:
@@ -404,7 +404,7 @@ def wrap_experiment(function=None,
             computed from `name` if omitted.
         name (str or None): The name of this experiment template. Will be
             filled from the wrapped function's name if omitted.
-        prefix (str): Directory under data/local in which to place the
+        prefix (str): Directory under output in which to place the
             experiment directory.
         snapshot_mode (str): Policy for which snapshots to keep (or make at
             all). Can be either "all" (all iterations will be saved), "last"

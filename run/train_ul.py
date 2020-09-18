@@ -32,6 +32,7 @@ from garage.misc.exp_util import make_env, make_exp_name
 @click.option('--overwrite', is_flag=True)
 def main(rb, env, algo, image, discrete, name, seed, gpu, debug, overwrite):
     name = make_exp_name(name, debug)
+    name = f'ul/{name}'
     if debug:
         overwrite = True # always allow overwriting on a debug exp
     @wrap_experiment(prefix=env, name=name, snapshot_mode='last', archive_launch_repo=False, use_existing_dir=overwrite)
@@ -90,7 +91,7 @@ def main(rb, env, algo, image, discrete, name, seed, gpu, debug, overwrite):
             raise NotImplementedError
 
         # load saved rb
-        rb_filename = f'data/local/{env_name}/{rb}/replay_buffer.pkl'
+        rb_filename = f'output/{env_name}/data/{rb}/replay_buffer.pkl'
         with open(rb_filename, 'rb') as f:
             replay_buffer = pkl.load(f)['replay_buffer']
         f.close()

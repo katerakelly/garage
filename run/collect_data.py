@@ -28,6 +28,7 @@ from garage.misc.exp_util import make_env, make_exp_name
 @click.option('--overwrite', is_flag=True)
 def main(env, image, discrete, name, seed, gpu, debug, overwrite):
     name = make_exp_name(name, debug)
+    name = f'data/{name}'
     if debug:
         overwrite = True # always allow overwriting on a debug exp
     @wrap_experiment(prefix=env, name=name, snapshot_mode='none', archive_launch_repo=False, use_existing_dir=overwrite)
