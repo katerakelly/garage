@@ -2,6 +2,7 @@ import abc
 import torch
 import torch.nn.functional as F
 from torch import nn
+from garage.torch import global_device
 
 
 class Predictor(abc.ABC, nn.Module):
@@ -17,20 +18,78 @@ class Predictor(abc.ABC, nn.Module):
         self.head = head
 
     def forward(self, inputs):
-        """ pass inputs through cnn encoder (if it exists) then head """
+        """ pass inputs through cnn encoder (if it exists) then head (if it exists) """
         if self.cnn_encoder is not None:
             # TODO this might be slower than reshaping images into batch dim
             feats = [self.cnn_encoder(in_) for in_ in inputs]
         else:
             feats = inputs
         feat = torch.cat(feats, dim=-1)
-        return self.head(feat)
+        if self.head is not None:
+            return self.head(feat)
+        else:
+            return feat
 
     def compute_loss(self, samples_data):
         """ compute the prediction loss """
 
     def evaluate(self, samples_data):
         """ evaluate predictor with appropriate metrics """
+
+
+class CPC(Predictor):
+    """
+    Maximizes I(z_{t+1}, z_t)
+    """
+    def __init__(self, cnn_encoder, head):
+        super().__init__(cnn_encoder, head)
+        z_dim = self.cnn_encoder.output_dim
+        self.W = nn.Parameter(torch.rand(z_dim, z_dim)) # optimized
+        self._loss = nn.CrossEntropyLoss()
+
+    def compute_logits(self, z_a, z_pos):
+        """
+        copied from: https://github.com/MishaLaskin/curl
+        Uses logits trick for CURL:
+        - compute (B,B) matrix z_a (W z_pos.T)
+        - positives are all diagonal elements
+        - negatives are all other elements
+        - to compute loss use multiclass cross entropy with identity matrix for labels
+        """
+        Wz = torch.matmul(self.W, z_pos.T)  # (z_dim,B)
+        logits = torch.matmul(z_a, Wz)  # (B,B)
+        logits = logits - torch.max(logits, 1)[0][:, None]
+        return logits
+
+    def compute_loss(self, samples_data):
+        """
+        idea is to sample a batch of (ob, next_ob), encode them,
+        and then for each ob, use the rest of the batch as the
+        negative example next_ob in the contrastive loss
+        """
+        obs = samples_data['observation']
+        next_obs = samples_data['next_observation']
+
+        anchor = self.forward([obs])
+        positives = self.forward([next_obs])
+        logits = self.compute_logits(anchor, positives)
+        device = global_device()
+        labels = torch.arange(logits.shape[0]).long().to(device)
+        loss = self._loss(logits, labels)
+        return loss
+
+    def evaluate(self, samples_data):
+        obs = samples_data['observation']
+        next_obs = samples_data['next_observation']
+
+        anchor = self.forward([obs])
+        positives = self.forward([next_obs])
+        logits = self.compute_logits(anchor, positives)
+        preds = torch.argmax(logits, dim=-1)
+        device = global_device()
+        labels = torch.arange(logits.shape[0]).long().to(device)
+        correct = (preds == labels).sum().item()
+        return {'accuracy': correct / len(labels)}
 
 
 class InverseMI(Predictor):
