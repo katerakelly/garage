@@ -21,7 +21,7 @@ from garage.misc.exp_util import make_env, make_exp_name
 
 @click.command()
 @click.option('--rb', default=None)
-@click.option('--env', default='catcher')
+@click.option('--env', default='catcher-short')
 @click.option('--algo', default=None)
 @click.option('--image', is_flag=True)
 @click.option('--discrete', is_flag=True)

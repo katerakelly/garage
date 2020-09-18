@@ -22,7 +22,7 @@ from garage.misc.exp_util import make_env, make_exp_name
 
 
 @click.command()
-@click.option('--env', default='catcher')
+@click.option('--env', default='catcher-short')
 @click.option('--image', is_flag=True)
 @click.option('--discrete', is_flag=True)
 @click.option('--name', default=None)
