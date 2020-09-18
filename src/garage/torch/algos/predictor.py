@@ -1,8 +1,11 @@
 import abc
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
+
 from garage.torch import global_device
+from garage.torch.modules import MLPModule
 
 
 class Predictor(abc.ABC, nn.Module):
@@ -41,11 +44,24 @@ class CPC(Predictor):
     """
     Maximizes I(z_{t+1}, z_t)
     """
-    def __init__(self, cnn_encoder, head):
-        super().__init__(cnn_encoder, head)
+    def __init__(self, cnn_encoder):
+        super().__init__(cnn_encoder, head=None)
         z_dim = self.cnn_encoder.output_dim
         self.W = nn.Parameter(torch.rand(z_dim, z_dim)) # optimized
         self._loss = nn.CrossEntropyLoss()
+
+    def forward(self, inputs):
+        """
+        embed obs -> z_t and next_obs -> z_{t+1} with cnn
+        """
+        obs, next_obs = inputs
+        if self.cnn_encoder is not None:
+            obs_feat = self.cnn_encoder(obs)
+            next_obs_feat = self.cnn_encoder(next_obs)
+        else:
+            obs_feat = obs
+            next_obs_feat = next_obs
+        return obs_feat, next_obs_feat
 
     def compute_logits(self, z_a, z_pos):
         """
@@ -61,17 +77,19 @@ class CPC(Predictor):
         logits = logits - torch.max(logits, 1)[0][:, None]
         return logits
 
+    def prepare_data(self, samples_data):
+        obs = samples_data['observation']
+        next_obs = samples_data['next_observation']
+        return [obs, next_obs]
+
     def compute_loss(self, samples_data):
         """
         idea is to sample a batch of (ob, next_ob), encode them,
         and then for each ob, use the rest of the batch as the
         negative example next_ob in the contrastive loss
         """
-        obs = samples_data['observation']
-        next_obs = samples_data['next_observation']
-
-        anchor = self.forward([obs])
-        positives = self.forward([next_obs])
+        data = self.prepare_data(samples_data)
+        anchor, positives = self.forward(data)
         logits = self.compute_logits(anchor, positives)
         device = global_device()
         labels = torch.arange(logits.shape[0]).long().to(device)
@@ -79,17 +97,52 @@ class CPC(Predictor):
         return loss
 
     def evaluate(self, samples_data):
-        obs = samples_data['observation']
-        next_obs = samples_data['next_observation']
-
-        anchor = self.forward([obs])
-        positives = self.forward([next_obs])
+        data = self.prepare_data(samples_data)
+        anchor, positives = self.forward(data)
         logits = self.compute_logits(anchor, positives)
         preds = torch.argmax(logits, dim=-1)
         device = global_device()
         labels = torch.arange(logits.shape[0]).long().to(device)
         correct = (preds == labels).sum().item()
         return {'accuracy': correct / len(labels)}
+
+
+class ForwardMI(CPC):
+    """
+    UL algorithm that maximizes I(z_{t+1}; z_t, a_t)
+    """
+    def __init__(self, cnn_encoder):
+        super().__init__(cnn_encoder)
+        self.context_encoder = MLPModule(input_dim=cnn_encoder.output_dim * 2, output_dim=cnn_encoder.output_dim, hidden_sizes=[256, 256], hidden_nonlinearity=nn.ReLU)
+
+    def forward(self, inputs):
+        """
+        inputs: [obs, next_obs, action]
+        encode obs and next_obs with cnn into z and z'
+        concat [a, z], embed to get anchor c
+        return: anchor c, positives z'
+        """
+        obs, next_obs, action = inputs
+        if self.cnn_encoder is not None:
+            # TODO this might be slower than reshaping images into batch dim
+            obs_feat = self.cnn_encoder(obs)
+            next_obs_feat = self.cnn_encoder(next_obs)
+        else:
+            obs_feat = obs
+            next_obs_feat = next_obs
+
+        # make the action the same size as the image feature
+        action = torch.argmax(action, dim=-1, keepdim=True) # convert 1-hot -> scalar
+        action = action.repeat(1, self.cnn_encoder.output_dim).float()
+        context = torch.cat([obs_feat, action], dim=-1)
+        context = self.context_encoder(context)
+        return context, next_obs_feat
+
+    def prepare_data(self, samples_data):
+        obs = samples_data['observation']
+        next_obs = samples_data['next_observation']
+        actions = samples_data['action']
+        return [obs, next_obs, actions]
 
 
 class InverseMI(Predictor):

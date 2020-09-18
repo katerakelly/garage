@@ -14,7 +14,7 @@ from garage.replay_buffer import PathBuffer
 from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
 from garage.torch.modules import CNNEncoder
-from garage.torch.algos import InverseMI, ULAlgorithm, CPC, RewardDecoder
+from garage.torch.algos import InverseMI, ULAlgorithm, CPC, RewardDecoder, ForwardMI
 from garage.torch.modules import GaussianMLPTwoHeadedModule, MLPModule
 from garage.misc.exp_util import make_env, make_exp_name
 
@@ -82,7 +82,9 @@ def main(rb, env, algo, image, discrete, name, seed, gpu, debug, overwrite):
                                         hidden_nonlinearity=nn.ReLU)
                 predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete), 'RewardDecode': RewardDecoder(cnn_encoder, reward_mlp)}
         elif algo == 'cpc':
-            predictors = {'CPC': CPC(cnn_encoder, None)}
+            predictors = {'CPC': CPC(cnn_encoder)}
+        elif algo == 'forward':
+            predictors = {'ForwardMI': ForwardMI(cnn_encoder)}
         else:
             print('Algorithm {} not implemented.'.format(algo))
             raise NotImplementedError
