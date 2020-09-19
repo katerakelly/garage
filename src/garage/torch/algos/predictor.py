@@ -185,9 +185,22 @@ class InverseMI(Predictor):
         if not self._discrete:
             raise NotImplementedError
         pred_actions = torch.argmax(self.forward([obs, next_obs]), dim=-1)
-        actions = torch.argmax(actions, dim=-1)
-        correct = (actions == pred_actions).sum().item()
-        return {'accuracy': correct / len(actions)}
+        actions = torch.argmax(actions, dim=-1) # convert 1-hot to scalar
+        eval_dict = {}
+        total_acc = (actions == pred_actions).sum().item() / len(actions)
+        eval_dict['avg_accuracy'] = total_acc
+
+        # also break out accuracy per action
+        pred_actions = pred_actions.detach().cpu().numpy()
+        actions = actions.cpu().numpy()
+        action_vals = np.unique(actions)
+        for val in action_vals:
+            a = actions[actions == val]
+            b = pred_actions[actions == val]
+            acc = (a == b).astype(np.float).mean()
+            eval_dict['accuracy_{}'.format(val)] = acc
+
+        return eval_dict
 
 
 class Regressor(Predictor):
@@ -253,7 +266,7 @@ class RewardDecoder(Regressor):
             a = reward[reward == r]
             b = pred[reward == r]
             mse = np.square(a - b).mean()
-            eval_dict['Reward{}'.format(r)] = mse
+            eval_dict['reward_{}'.format(r)] = mse
 
         return eval_dict
 
