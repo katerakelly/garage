@@ -34,7 +34,7 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
         params = []
         for p in self.predictors.values():
             params += list(p.parameters())
-        self._optimizer = torch.optim.SGD(params, lr=self._lr)
+        self._optimizer = torch.optim.SGD(params, lr=self._lr, momentum=0.9)
 
     def train(self, runner):
         """ training loop """
