@@ -86,7 +86,11 @@ class NormalizedEnv(gym.Wrapper):
         self._update_obs_estimate(obs)
         flat_obs = gym.spaces.utils.flatten(self.env.observation_space, obs)
         if self._image_obs:
+            # scale to 0, 1
             normalized_obs = flat_obs.astype(np.float32) / 256.
+            # assume mean and std are 0.5 and normalize
+            # NOTE this assumes same stats for all channels!
+            normalized_obs = (normalized_obs - 0.5) / 0.5
         else:
             normalized_obs = (flat_obs -
                             self._obs_mean) / (np.sqrt(self._obs_var) + 1e-8)
