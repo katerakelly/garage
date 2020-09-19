@@ -102,7 +102,7 @@ class PathBuffer:
         path = {key: buf_arr[indices] for key, buf_arr in self._buffer.items()}
         return path
 
-    def sample_transitions(self, batch_size):
+    def sample_transitions(self, batch_size, idx=None):
         """Sample a batch of transitions from the buffer.
 
         Args:
@@ -112,7 +112,8 @@ class PathBuffer:
             dict: A dict of arrays of shape (batch_size, flat_dim).
 
         """
-        idx = np.random.randint(self._transitions_stored, size=batch_size)
+        if idx is None:
+            idx = np.random.randint(self._transitions_stored, size=batch_size)
         return {key: buf_arr[idx] for key, buf_arr in self._buffer.items()}
 
     def _next_path_segments(self, n_indices):
