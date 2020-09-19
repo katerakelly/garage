@@ -38,9 +38,18 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
 
     def train(self, runner):
         """ training loop """
+        dsize = self.replay_buffer._transitions_stored
         for _ in runner.step_epochs():
+            # train
             for _ in range(self._steps_per_epoch):
-                eval_dicts = self.train_once()
+                losses = self.train_once()
+            #eval
+            eval_dicts = self.eval_once()
+            # add the loss to the eval_dict
+            for k in eval_dicts.keys():
+                eval_dicts[k].update({'loss': losses[k]})
+            # add the amount of data processed to logging
+            eval_dicts['DataEpochs'] = ((runner.step_itr + 1) *self._steps_per_epoch * self._buffer_batch_size) / dsize
             self._log_statistics(eval_dicts)
             # NOTE: assumes predictors share conv encoder!!
             cnn_encoder = next(iter(self.predictors.values())).cnn_encoder
@@ -53,30 +62,32 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
         samples = self.replay_buffer.sample_transitions(
             self._buffer_batch_size)
         samples = dict_np_to_torch(samples)
-        losses, eval_dicts = {}, {}
+        losses = {}
         self._optimizer.zero_grad()
         for name, p in self.predictors.items():
             loss = p.compute_loss(samples) * self._loss_weights[name]
             loss.backward(retain_graph=True) # multiple predictors may optimize same network
             losses[name] = loss.item()
         self._optimizer.step()
+        return losses
 
+    def eval_once(self):
         # perform evaluation of each predictor
         eval_samples = self.replay_buffer.sample_transitions(
             self._eval_batch_size)
         eval_samples = dict_np_to_torch(eval_samples)
+        eval_dicts = {}
         for name, p in self.predictors.items():
             eval_dicts[name] = p.evaluate(eval_samples)
-
-        # add the loss to the eval_dict
-        for k in eval_dicts.keys():
-            eval_dicts[k].update({'loss': losses[k]})
         return eval_dicts
 
     def _log_statistics(self, eval_dict):
-        for predictor_name, stat_dict in eval_dict.items():
-            for k, v in stat_dict.items():
-                tabular.record(f'{predictor_name}/{k}', v)
+        for key, value in eval_dict.items():
+            if type(value) is dict:
+                for k, v in value.items():
+                    tabular.record(f'{key}/{k}', v)
+            else:
+                tabular.record(f'{key}', value)
 
     @property
     def networks(self):
