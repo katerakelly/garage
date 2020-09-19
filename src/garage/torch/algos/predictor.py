@@ -230,6 +230,17 @@ class RewardDecoder(Regressor):
     def _data_key(self):
         return 'reward'
 
+    def compute_loss(self, samples_data):
+        # predict reward from NEXT obs since this is what it depends on in this env
+        obs = samples_data['next_observation']
+        target = samples_data[self._data_key]
+
+        # compute the loss
+        pred = self.forward([obs])
+        loss = F.mse_loss(pred.flatten(), target.flatten())
+
+        return loss
+
     def evaluate(self, samples_data):
         obs = samples_data['observation']
         reward = samples_data[self._data_key].cpu().numpy()
