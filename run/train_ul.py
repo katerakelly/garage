@@ -78,7 +78,7 @@ def main(rb, env, algo, image, discrete, name, seed, gpu, debug, overwrite):
                 predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete)}
             elif algo == 'inverse-reward':
                 reward_mlp = MLPModule(input_dim=obs_dim,
-                                        output_dim=1,
+                                        output_dim=3,
                                         hidden_sizes=hidden_sizes,
                                         hidden_nonlinearity=nn.ReLU)
                 predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete), 'RewardDecode': RewardDecoder(cnn_encoder, reward_mlp)}

@@ -6,6 +6,7 @@ from torch import nn
 
 from garage.torch import global_device
 from garage.torch.modules import MLPModule
+from garage.np import compute_perclass_accuracy
 
 
 class Predictor(abc.ABC, nn.Module):
@@ -193,12 +194,10 @@ class InverseMI(Predictor):
         # also break out accuracy per action
         pred_actions = pred_actions.detach().cpu().numpy()
         actions = actions.cpu().numpy()
-        action_vals = np.unique(actions)
-        for val in action_vals:
-            a = actions[actions == val]
-            b = pred_actions[actions == val]
-            acc = (a == b).astype(np.float).mean()
-            eval_dict['accuracy_{}'.format(val)] = acc
+        action_vals = list(range(3))
+        accs = compute_perclass_accuracy(pred_actions, actions, action_vals)
+        d = dict([(f'accuracy_{val}', acc) for val, acc in zip(action_vals, accs)])
+        eval_dict.update(d)
 
         return eval_dict
 
@@ -235,39 +234,45 @@ class Regressor(Predictor):
         return {'MSE': mse.item()}
 
 
-class RewardDecoder(Regressor):
+class RewardDecoder(Predictor):
     """
-    Predict the reward given the current observation
+    classify the reward given the current observation
     """
-    @property
-    def _data_key(self):
-        return 'reward'
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 2% of dataset is neg reward, 1% is positive!
+        loss_weight = torch.Tensor([0.29, 0.01, 0.7])
+        self._loss = nn.CrossEntropyLoss(weight=loss_weight)
+
+    def remap_reward(self, reward):
+        # map the raw reward to three classes
+        reward[reward == -1.0] = 0
+        reward[reward == 0.0] = 1
+        reward[reward == 1.0] = 2
+        return reward
 
     def compute_loss(self, samples_data):
         # predict reward from NEXT obs since this is what it depends on in this env
         obs = samples_data['next_observation']
-        target = samples_data[self._data_key]
+        reward = samples_data['reward']
+        reward = self.remap_reward(reward).long()
 
         # compute the loss
         pred = self.forward([obs])
-        loss = F.mse_loss(pred.flatten(), target.flatten())
+        loss = self._loss(pred, reward.flatten())
 
         return loss
 
     def evaluate(self, samples_data):
         obs = samples_data['observation']
-        reward = samples_data[self._data_key].cpu().numpy()
-        pred = self.forward([obs]).detach().cpu().numpy()
+        reward = samples_data['reward']
+        reward = self.remap_reward(reward).cpu().numpy().flatten()
+        pred = torch.argmax(self.forward([obs]), dim=-1).detach().cpu().numpy()
 
         # separate metric by reward value (since there are only a few)
-        reward_vals = np.unique(reward)
-        eval_dict = {}
-        for r in reward_vals:
-            a = reward[reward == r]
-            b = pred[reward == r]
-            mse = np.square(a - b).mean()
-            eval_dict['reward_{}'.format(r)] = mse
-
+        reward_vals = list(range(3))
+        accs = compute_perclass_accuracy(pred, reward, reward_vals)
+        eval_dict = dict([(f'reward_{r}', acc) for r, acc in zip(reward_vals, accs)])
         return eval_dict
 
 

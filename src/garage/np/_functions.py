@@ -126,3 +126,27 @@ def paths_to_tensors(paths, max_path_length, baseline_predictions, discount):
                         valids=valids)
 
     return samples_data
+
+
+def compute_perclass_accuracy(preds, targets, classes):
+    """
+    compute the accuracy of predictions given corresponding labels
+    preds: length N array of np.array floats
+    targets: length N array of np.array longs
+    classes: all possible classes (all classes may not be present in targets)
+
+    convention is to return 0.0 for any class not present in target
+    """
+    accs = []
+    for cl in classes:
+        a = (preds == cl).astype(np.int)
+        b = (targets == cl).astype(np.int)
+        correct = ((a + b) == 2).astype(np.int).sum()
+        if np.all(b == 0):
+            acc = 0
+        else:
+            acc = correct / b.sum()
+        accs.append(acc)
+    return accs
+
+

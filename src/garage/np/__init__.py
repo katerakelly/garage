@@ -2,10 +2,11 @@
 # yapf: disable
 from garage.np._functions import (obtain_evaluation_samples,
                                   paths_to_tensors,
-                                  samples_to_tensors)
+                                  samples_to_tensors,
+                                  compute_perclass_accuracy)
 
 # yapf: enable
 
 __all__ = [
-    'obtain_evaluation_samples', 'paths_to_tensors', 'samples_to_tensors'
+    'obtain_evaluation_samples', 'paths_to_tensors', 'samples_to_tensors', 'compute_perclass_accuracy'
 ]
