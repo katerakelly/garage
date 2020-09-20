@@ -66,6 +66,7 @@ def main(rb, env, algo, image, discrete, name, seed, gpu, debug, overwrite):
             obs_dim = cnn_encoder.output_dim
             hidden_sizes = [] # linear decoder from conv features
 
+        loss_weights = None
         if 'inverse' in algo:
             # make mlp to predict actions
             action_mlp = MLPModule(input_dim=obs_dim * 2,
@@ -82,6 +83,7 @@ def main(rb, env, algo, image, discrete, name, seed, gpu, debug, overwrite):
                                         hidden_sizes=hidden_sizes,
                                         hidden_nonlinearity=nn.ReLU)
                 predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete), 'RewardDecode': RewardDecoder(cnn_encoder, reward_mlp)}
+                loss_weights = {'InverseMI': 1.0, 'RewardDecode': 10.0}
         elif algo == 'cpc':
             predictors = {'CPC': CPC(cnn_encoder)}
         elif algo == 'forward':
@@ -102,6 +104,7 @@ def main(rb, env, algo, image, discrete, name, seed, gpu, debug, overwrite):
         # construct algo and train!
         algo = ULAlgorithm(predictors,
                            replay_buffer,
+                           loss_weights = loss_weights,
                            lr=1e-2,
                            buffer_batch_size=256)
 
