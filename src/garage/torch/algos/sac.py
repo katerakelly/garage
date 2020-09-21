@@ -111,11 +111,11 @@ class SAC(RLAlgorithm):
             num_evaluation_trajectories=10,
             eval_env=None,
             train_cnn=True,
+            save_buffer=False,
     ):
 
         self._qf1 = qf1
         self._qf2 = qf2
-        self.replay_buffer = replay_buffer
         self._tau = target_update_tau
         self._policy_lr = policy_lr
         self._qf_lr = qf_lr
@@ -136,6 +136,7 @@ class SAC(RLAlgorithm):
         self.policy = policy
         self.env_spec = env_spec
         self.replay_buffer = replay_buffer
+        self._save_buffer = save_buffer
 
         self.sampler_cls = RaySampler
 
@@ -217,6 +218,9 @@ class SAC(RLAlgorithm):
             self._log_statistics(policy_loss, qf1_loss, qf2_loss, policy_entropy)
             tabular.record('TotalEnvSteps', runner.total_env_steps)
             runner.step_itr += 1
+        if self._save_buffer:
+            # save the replay buffer
+            runner.simple_save({'replay_buffer': self.replay_buffer}, name='replay_buffer')
 
         return np.mean(last_return)
 
