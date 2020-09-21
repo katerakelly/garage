@@ -32,13 +32,14 @@ from garage.misc.exp_util import make_env, make_exp_name
 @click.option('--overwrite', is_flag=True)
 @click.option('--pretrain', default=None)
 @click.option('--train_cnn', is_flag=True)
-def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain, train_cnn):
+@click.option('--bg', default=None)
+def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain, train_cnn, bg):
     name = make_exp_name(name, debug)
     name = f'rl/{name}'
     if debug:
         overwrite = True # always allow overwriting on a debug exp
     @wrap_experiment(prefix=env, name=name, snapshot_mode='none', archive_launch_repo=False, use_existing_dir=overwrite)
-    def sac_batch(ctxt, env, image, discrete, pretrain, train_cnn, seed, gpu):
+    def sac_batch(ctxt, env, image, discrete, pretrain, train_cnn, bg, seed, gpu):
         """Set up environment and algorithm and run the task.
 
         Args:
@@ -57,7 +58,7 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain, trai
 
         # make the env, given name and whether to use image obs
         env_name = env
-        env = make_env(env_name, image, discrete)
+        env = make_env(env_name, image, bg, discrete)
 
         # make cnn encoder if learning from images
         cnn_encoder = None
@@ -139,6 +140,6 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain, trai
         runner.setup(algo=sac, env=env, sampler_cls=LocalSampler)
         runner.train(n_epochs=1000, batch_size=1000)
 
-    sac_batch(env=env, image=image, discrete=discrete, seed=seed, gpu=gpu, pretrain=pretrain, train_cnn=train_cnn)
+    sac_batch(env=env, image=image, discrete=discrete, seed=seed, gpu=gpu, bg=bg, pretrain=pretrain, train_cnn=train_cnn)
 
 main()

@@ -51,7 +51,7 @@ def main(rb, env, algo, image, discrete, name, seed, gpu, debug, overwrite):
 
         # make the env, given name and whether to use image obs
         env_name = env
-        env = make_env(env_name, image, discrete)
+        env = make_env(env_name, image, discrete=discrete)
 
         # make cnn encoder if learning from images
         cnn_encoder = None
