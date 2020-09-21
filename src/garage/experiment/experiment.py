@@ -310,7 +310,8 @@ class ExperimentTemplate:
         variant_log_file = os.path.join(log_dir, 'variant.json')
         metadata_log_file = os.path.join(log_dir, 'metadata.json')
 
-        dump_json(variant_log_file, kwargs)
+        variant = kwargs['variant'] # python dict
+        dump_json(variant_log_file, dict_to_safe_json(variant))
         git_root_path, metadata = get_metadata()
         dump_json(metadata_log_file, metadata)
         if git_root_path and options['archive_launch_repo']:
@@ -567,3 +568,32 @@ class LogEncoder(json.JSONEncoder):
         elif callable(o):
             return {'$function': o.__module__ + '.' + o.__name__}
         return json.JSONEncoder.default(self, o)
+
+def dict_to_safe_json(d):
+    """
+    Convert each value in the dictionary into a JSON'able primitive.
+    :param d:
+    :return:
+    """
+    new_d = {}
+    for key, item in d.items():
+        if safe_json(item):
+            new_d[key] = item
+        else:
+            if isinstance(item, dict):
+                new_d[key] = dict_to_safe_json(item)
+            else:
+                new_d[key] = str(item)
+    return new_d
+
+def safe_json(data):
+    if data is None:
+        return True
+    elif isinstance(data, (bool, int, float)):
+        return True
+    elif isinstance(data, (tuple, list)):
+        return all(safe_json(x) for x in data)
+    elif isinstance(data, dict):
+        return all(isinstance(k, str) and safe_json(v) for k, v in data.items())
+    return False
+

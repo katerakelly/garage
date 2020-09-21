@@ -1,0 +1,8 @@
+{
+    "env": "catcher-short",
+    "image": "true",
+    "discrete": "true",
+    "name": "none",
+    "seed": 1,
+    "gpu": 0
+}

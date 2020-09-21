@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """This is an example to train a task with SAC algorithm written in PyTorch."""
+import os
+import json
 import gym
 import numpy as np
 import click
@@ -22,24 +24,21 @@ from garage.misc.exp_util import make_env, make_exp_name
 
 
 @click.command()
-@click.option('--env', default='catcher-short')
-@click.option('--image', is_flag=True)
-@click.option('--discrete', is_flag=True)
+@click.argument('config', default=None)
 @click.option('--name', default=None)
-@click.option('--seed', default=1)
 @click.option('--gpu', default=0)
 @click.option('--debug', is_flag=True)
 @click.option('--overwrite', is_flag=True)
-@click.option('--pretrain', default=None)
-@click.option('--train_cnn', is_flag=True)
-@click.option('--bg', default=None)
-def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain, train_cnn, bg):
+def main(config, name, gpu, debug, overwrite):
+    with open(os.path.join(config)) as f:
+        variant = json.load(f)
+    variant['gpu'] = gpu
     name = make_exp_name(name, debug)
     name = f'rl/{name}'
     if debug:
         overwrite = True # always allow overwriting on a debug exp
-    @wrap_experiment(prefix=env, name=name, snapshot_mode='none', archive_launch_repo=False, use_existing_dir=overwrite)
-    def sac_batch(ctxt, env, image, discrete, pretrain, train_cnn, bg, seed, gpu):
+    @wrap_experiment(prefix=variant['env'], name=name, snapshot_mode='none', archive_launch_repo=False, use_existing_dir=overwrite)
+    def sac_batch(ctxt, variant):
         """Set up environment and algorithm and run the task.
 
         Args:
@@ -53,12 +52,16 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain, trai
             gpu (int): which gpu to use
 
         """
-        deterministic.set_seed(seed)
+        # unpack commonly used args
+        image = variant['image']
+        discrete = variant['discrete']
+
+        deterministic.set_seed(variant['seed'])
         runner = LocalRunner(snapshot_config=ctxt)
 
         # make the env, given name and whether to use image obs
-        env_name = env
-        env = make_env(env_name, image, bg, discrete)
+        env_name = variant['env']
+        env = make_env(env_name, image, variant['bg'], discrete)
 
         # make cnn encoder if learning from images
         cnn_encoder = None
@@ -68,7 +71,8 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain, trai
             cnn_encoder = CNNEncoder(in_channels=1,
                                         output_dim=256)
             # optionally load pre-trained weights
-            if pretrain:
+            pretrain = variant['pretrain']
+            if pretrain is not None:
                 print('Loading pre-trained weights from {}...'.format(pretrain))
                 path_to_weights = f'output/{env_name}/ul/{pretrain}/encoder.pth'
                 cnn_encoder.load_state_dict(torch.load(path_to_weights))
@@ -130,16 +134,16 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite, pretrain, trai
                 buffer_batch_size=256,
                 reward_scale=100.,
                 steps_per_epoch=1,
-                train_cnn=train_cnn)
+                train_cnn=variant['train_cnn'])
 
         if torch.cuda.is_available():
-            set_gpu_mode(True, gpu_id=gpu)
+            set_gpu_mode(True, gpu_id=variant['gpu'])
         else:
             set_gpu_mode(False)
         sac.to()
         runner.setup(algo=sac, env=env, sampler_cls=LocalSampler)
         runner.train(n_epochs=1000, batch_size=1000)
 
-    sac_batch(env=env, image=image, discrete=discrete, seed=seed, gpu=gpu, bg=bg, pretrain=pretrain, train_cnn=train_cnn)
+    sac_batch(variant=variant)
 
 main()

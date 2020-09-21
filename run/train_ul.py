@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """This is an example to train a task with SAC algorithm written in PyTorch."""
+import os
+import json
 import gym
 import numpy as np
 import click
@@ -20,25 +22,21 @@ from garage.misc.exp_util import make_env, make_exp_name
 
 
 @click.command()
-@click.option('--rb', default=None)
-@click.option('--env', default='catcher-short')
-@click.option('--algo', default=None)
-@click.option('--image', is_flag=True)
-@click.option('--discrete', is_flag=True)
-@click.option('--ib', is_flag=True)
-@click.option('--klw', default=0.0)
+@click.argument('config', default=None)
 @click.option('--name', default=None)
-@click.option('--seed', default=1)
 @click.option('--gpu', default=0)
 @click.option('--debug', is_flag=True)
 @click.option('--overwrite', is_flag=True)
-def main(rb, env, algo, image, discrete, ib, klw, name, seed, gpu, debug, overwrite):
+def main(config, name, gpu, debug, overwrite):
+    with open(os.path.join(config)) as f:
+        variant = json.load(f)
+    variant['gpu'] = gpu
     name = make_exp_name(name, debug)
     name = f'ul/{name}'
     if debug:
         overwrite = True # always allow overwriting on a debug exp
-    @wrap_experiment(prefix=env, name=name, snapshot_mode='last', archive_launch_repo=False, use_existing_dir=overwrite)
-    def train_inverse(ctxt, rb, env, algo, image, discrete, ib, klw, seed, gpu):
+    @wrap_experiment(prefix=variant['env'], name=name, snapshot_mode='last', archive_launch_repo=False, use_existing_dir=overwrite)
+    def train_inverse(ctxt, variant):
         """Set up environment and algorithm and run the task.
 
         Args:
@@ -48,11 +46,16 @@ def main(rb, env, algo, image, discrete, ib, klw, name, seed, gpu, debug, overwr
                 determinism.
 
         """
-        deterministic.set_seed(seed)
+        # unpack commonly used args
+        image = variant['image']
+        discrete = variant['discrete']
+        algo = variant['algo']
+
+        deterministic.set_seed(variant['seed'])
         runner = LocalRunner(snapshot_config=ctxt)
 
         # make the env, given name and whether to use image obs
-        env_name = env
+        env_name = variant['env']
         env = make_env(env_name, image, discrete=discrete)
 
         # make cnn encoder if learning from images
@@ -78,13 +81,13 @@ def main(rb, env, algo, image, discrete, ib, klw, name, seed, gpu, debug, overwr
             # pass inputs through CNN (if images), then though
             # mlp to predict actions
             if algo == 'inverse':
-                predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete, information_bottleneck=ib, kl_weight=klw)}
+                predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete, information_bottleneck=variant['ib'], kl_weight=variant['klw'])}
             elif algo == 'inverse-reward':
                 reward_mlp = MLPModule(input_dim=obs_dim,
                                         output_dim=3,
                                         hidden_sizes=hidden_sizes,
                                         hidden_nonlinearity=nn.ReLU)
-                predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete, information_bottleneck=ib), 'RewardDecode': RewardDecoder(cnn_encoder, reward_mlp)}
+                predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete, information_bottleneck=variant['ib']), 'RewardDecode': RewardDecoder(cnn_encoder, reward_mlp)}
                 loss_weights = {'InverseMI': 1.0, 'RewardDecode': 10.0}
         elif algo == 'cpc':
             predictors = {'CPC': CPC(cnn_encoder)}
@@ -95,6 +98,7 @@ def main(rb, env, algo, image, discrete, ib, klw, name, seed, gpu, debug, overwr
             raise NotImplementedError
 
         # load saved rb
+        rb = variant['rb']
         rb_filename = f'output/{env_name}/data/{rb}/replay_buffer.pkl'
         with open(rb_filename, 'rb') as f:
             replay_buffer = pkl.load(f)['replay_buffer']
@@ -111,13 +115,13 @@ def main(rb, env, algo, image, discrete, ib, klw, name, seed, gpu, debug, overwr
                            buffer_batch_size=256)
 
         if torch.cuda.is_available():
-            set_gpu_mode(True, gpu_id=gpu)
+            set_gpu_mode(True, gpu_id=variant['gpu'])
         else:
             set_gpu_mode(False)
         algo.to()
         runner.setup(algo=algo, env=env)
         runner.train(n_epochs=1000, batch_size=1000)
 
-    train_inverse(rb=rb, env=env, algo=algo, image=image, discrete=discrete, ib=ib, klw=klw, seed=seed, gpu=gpu)
+    train_inverse(variant=variant)
 
 main()

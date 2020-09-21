@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """ Collect and save data from a random or trained policy """
+import os
+import json
 import gym
 import numpy as np
 import click
@@ -18,21 +20,21 @@ from garage.misc.exp_util import make_env, make_exp_name
 
 
 @click.command()
-@click.option('--env', default='catcher-short')
-@click.option('--image', is_flag=True)
-@click.option('--discrete', is_flag=True)
+@click.argument('config', default=None)
 @click.option('--name', default=None)
-@click.option('--seed', default=1)
 @click.option('--gpu', default=0)
 @click.option('--debug', is_flag=True)
 @click.option('--overwrite', is_flag=True)
-def main(env, image, discrete, name, seed, gpu, debug, overwrite):
+def main(config, name, gpu, debug, overwrite):
+    with open(os.path.join(config)) as f:
+        variant = json.load(f)
+    variant['gpu'] = gpu
     name = make_exp_name(name, debug)
     name = f'data/{name}'
     if debug:
         overwrite = True # always allow overwriting on a debug exp
-    @wrap_experiment(prefix=env, name=name, snapshot_mode='none', archive_launch_repo=False, use_existing_dir=overwrite)
-    def collect_data(ctxt, env, image, discrete, seed, gpu):
+    @wrap_experiment(prefix=variant['env'], name=name, snapshot_mode='none', archive_launch_repo=False, use_existing_dir=overwrite)
+    def collect_data(ctxt, variant):
         """Set up environment and algorithm and run the task.
 
         Args:
@@ -42,11 +44,12 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite):
                 determinism.
 
         """
-        deterministic.set_seed(seed)
+        deterministic.set_seed(variant['seed'])
         runner = LocalRunner(snapshot_config=ctxt)
 
         # make the env, given name and whether to use image obs
-        env = make_env(env, image, discrete=discrete)
+        image = variant['image']
+        env = make_env(variant['env'], image, discrete=variant['discrete'])
 
         policy = RandomPolicy(env_spec=env.spec)
 
@@ -58,7 +61,7 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite):
         algo = DataCollector(policy, replay_buffer, steps_per_epoch=1, max_path_length=500, min_buffer_size=num_collect, image=image)
 
         if torch.cuda.is_available():
-            set_gpu_mode(True, gpu_id=gpu)
+            set_gpu_mode(True, gpu_id=variant['gpu'])
         else:
             set_gpu_mode(False)
         #algo.to()
@@ -67,6 +70,6 @@ def main(env, image, discrete, name, seed, gpu, debug, overwrite):
         # the first iteration, batch_size will be overridden by min_buffer_size specified in algo
         runner.train(n_epochs=1, batch_size=1) # add arg store_paths=True to store collected samples. samples from each iter will be saved by snapshotter, but will be organized per itr collected. can we instead add the replay buffer to the list of things to be snapshotted?
 
-    collect_data(env=env, image=image, discrete=discrete, seed=seed, gpu=gpu)
+    collect_data(variant=variant)
 
 main()

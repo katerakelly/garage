@@ -1,0 +1,12 @@
+{
+    "env": "catcher-short",
+    "rb": "50k_norm",
+    "image": "true",
+    "discrete": "true",
+    "ib": "false",
+    "klw": 0.0,
+    "name": "none",
+    "seed": 1,
+    "gpu": 0
+}
+
