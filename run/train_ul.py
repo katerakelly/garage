@@ -16,7 +16,7 @@ from garage.replay_buffer import PathBuffer
 from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
 from garage.torch.modules import CNNEncoder
-from garage.torch.algos import InverseMI, ULAlgorithm, CPC, RewardDecoder, ForwardMI
+from garage.torch.algos import InverseMI, ULAlgorithm, CPC, RewardDecoder, ForwardMI, StateDecoder
 from garage.torch.modules import GaussianMLPTwoHeadedModule, MLPModule
 from garage.misc.exp_util import make_env, make_exp_name
 
@@ -100,6 +100,12 @@ def main(config, name, gpu, debug, overwrite):
             predictors = {'CPC': CPC(cnn_encoder)}
         elif algo == 'forward':
             predictors = {'ForwardMI': ForwardMI(cnn_encoder)}
+        elif algo == 'state-decode':
+            state_mlp = MLPModule(input_dim=obs_dim,
+                                  output_dim=4,
+                                  hidden_sizes=hidden_sizes,
+                                  hidden_nonlinearity=nn.ReLU)
+            predictors = {'StateDecode': StateDecoder(cnn_encoder, state_mlp)}
         else:
             print('Algorithm {} not implemented.'.format(algo))
             raise NotImplementedError
