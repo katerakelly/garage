@@ -69,7 +69,14 @@ def main(config, name, gpu, debug, overwrite):
             cnn_encoder = CNNEncoder(in_channels=1,
                                         output_dim=256)
             obs_dim = cnn_encoder.output_dim
-            hidden_sizes = [] # linear decoder from conv features
+            # optionally load pre-trained weights
+            pretrain = variant['pretrain']
+            if pretrain:
+                print('Loading pre-trained weights from {}...'.format(pretrain))
+                path_to_weights = f'output/{env_name}/ul/{pretrain}/encoder.pth'
+                cnn_encoder.load_state_dict(torch.load(path_to_weights))
+                print('Success!')
+            hidden_sizes = [] # linear decoder from conv features -> force information into the conv encoder
 
         loss_weights = None
         if 'inverse' in algo:
@@ -112,7 +119,8 @@ def main(config, name, gpu, debug, overwrite):
                            replay_buffer,
                            loss_weights = loss_weights,
                            lr=1e-2,
-                           buffer_batch_size=256)
+                           buffer_batch_size=256,
+                           train_cnn=variant['train_cnn'])
 
         if torch.cuda.is_available():
             set_gpu_mode(True, gpu_id=variant['gpu'])

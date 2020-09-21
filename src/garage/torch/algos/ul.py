@@ -4,6 +4,7 @@ import torch
 
 from garage.np.algos import RLAlgorithm
 from garage.torch import dict_np_to_torch, global_device
+from garage.torch.modules import CNNEncoder
 
 
 class ULAlgorithm(RLAlgorithm, abc.ABC):
@@ -19,7 +20,8 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
                  lr=1e-3,
                  buffer_batch_size=64,
                  steps_per_epoch=100,
-                 eval_batch_size=512):
+                 eval_batch_size=512,
+                 train_cnn=True):
         self.predictors = predictors
         self.replay_buffer = replay_buffer
         # if no loss weights given, weight equally
@@ -33,7 +35,10 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
 
         params = []
         for p in self.predictors.values():
-            params += list(p.parameters())
+            for child in p.children():
+                if train_cnn or not isinstance(child, CNNEncoder):
+                    print('Optimizing:', child)
+                    params += list(p.parameters())
         self._optimizer = torch.optim.SGD(params, lr=self._lr, momentum=0.9)
 
     def train(self, runner):
