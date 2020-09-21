@@ -186,11 +186,15 @@ class InverseMI(Predictor):
                 torch.ones(latent_dim).to(global_device()))
             kl_div_sum = 0
             samples = []
+            z_mean, z_std = [], []
             for feat in [obs_feat, next_obs_feat]:
                 posteriors = [torch.distributions.Normal(mu, torch.sqrt(self._var)) for mu in torch.unbind(feat)]
                 samples.append(torch.stack([post.rsample() for post in posteriors]))
                 kl_divs = [torch.distributions.kl.kl_divergence(post, prior) for post in posteriors]
                 kl_div_sum += torch.sum(torch.stack(kl_divs))
+                # get mean and std of posteriors for logging
+                z_mean.append(torch.stack([post.mean for post in posteriors]).mean())
+                z_std.append(torch.stack([post.stddev for post in posteriors]).mean())
 
             feat = torch.cat(samples, dim=-1)
         else:
@@ -211,7 +215,12 @@ class InverseMI(Predictor):
                 raise Exception
             loss = self._loss(pred_actions.flatten(), actions.flatten())
         if self._information_bottleneck:
-            return {'KL': kl_div_sum * self._kl_weight, 'CELoss':loss}
+            z_mean = torch.mean(torch.stack(z_mean))
+            z_std = torch.mean(torch.stack(z_std))
+            return {'KL': kl_div_sum * self._kl_weight,
+                    'CELoss': loss,
+                    'ZMean': z_mean,
+                    'ZStd': z_std}
         else:
             return {'CELoss': loss}
 
