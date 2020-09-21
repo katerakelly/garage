@@ -113,7 +113,6 @@ class ForwardMI(CPC):
     """
     def __init__(self, cnn_encoder):
         super().__init__(cnn_encoder)
-        self.context_encoder = MLPModule(input_dim=cnn_encoder.output_dim * 2, output_dim=cnn_encoder.output_dim, hidden_sizes=[256, 256], hidden_nonlinearity=nn.ReLU)
 
     def forward(self, inputs):
         """
@@ -130,14 +129,13 @@ class ForwardMI(CPC):
         else:
             obs_feat = obs
             next_obs_feat = next_obs
-
-        # make the action the same size as the image feature
-        action = torch.argmax(action, dim=-1, keepdim=True) # convert 1-hot -> scalar
-        action = action.repeat(1, self.cnn_encoder.output_dim).float()
-        # TODO passing dummy action
-        action = torch.zeros(action.shape).to(global_device())
-        context = torch.cat([obs_feat, action], dim=-1)
-        context = self.context_encoder(context)
+        # incorporate action by taking outer product between action 1-hot and
+        # current observation feature, then sum across action dim
+        # action essentially acts as a mask for the feature
+        # NOTE tried to use torch.ger here and got a BLAS error
+        context = [torch.matmul(act[..., None], ob[None]) for ob, act in zip(torch.unbind(obs_feat), torch.unbind(action))]
+        context = [torch.sum(c, dim=0, keepdim=True) for c in context] # 1 x feat
+        context = torch.cat(context, dim=0) # batch x feat
         return context, next_obs_feat
 
     def prepare_data(self, samples_data):
