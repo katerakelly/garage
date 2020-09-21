@@ -92,10 +92,9 @@ class CPC(Predictor):
         data = self.prepare_data(samples_data)
         anchor, positives = self.forward(data)
         logits = self.compute_logits(anchor, positives)
-        device = global_device()
-        labels = torch.arange(logits.shape[0]).long().to(device)
+        labels = torch.arange(logits.shape[0]).long().to(global_device())
         loss = self._loss(logits, labels)
-        return loss
+        return {'CELoss': loss}
 
     def evaluate(self, samples_data):
         data = self.prepare_data(samples_data)
@@ -135,6 +134,8 @@ class ForwardMI(CPC):
         # make the action the same size as the image feature
         action = torch.argmax(action, dim=-1, keepdim=True) # convert 1-hot -> scalar
         action = action.repeat(1, self.cnn_encoder.output_dim).float()
+        # TODO passing dummy action
+        action = torch.zeros(action.shape).to(global_device())
         context = torch.cat([obs_feat, action], dim=-1)
         context = self.context_encoder(context)
         return context, next_obs_feat
@@ -150,9 +151,14 @@ class InverseMI(Predictor):
     """
     UL algorithm that trains an inverse model p(a | o_t, o_t+1)
     """
-    def __init__(self, cnn_encoder, head, discrete=True):
+    def __init__(self, cnn_encoder, head, discrete=True, information_bottleneck=False, kl_weight=1.0):
         super().__init__(cnn_encoder, head)
         self._discrete = discrete
+        self._information_bottleneck = information_bottleneck
+        if self._information_bottleneck:
+            # use the same var for every datapoint, trainable
+            self._var = nn.Parameter(torch.ones(self.cnn_encoder.output_dim))
+            self._kl_weight = kl_weight
         if self._discrete:
             self._loss = nn.CrossEntropyLoss()
         else:
@@ -163,8 +169,37 @@ class InverseMI(Predictor):
         next_obs = samples_data['next_observation']
         actions = samples_data['action']
 
-        # compute the loss
         pred_actions = self.forward([obs, next_obs])
+        if self.cnn_encoder is not None:
+            obs_feat = self.cnn_encoder(obs)
+            next_obs_feat = self.cnn_encoder(next_obs)
+        else:
+            obs_feat = obs
+            next_obs_feat = next_obs
+
+        # optionally compute IB loss
+        # assume output of cnn is diagonal gaussian
+        if self._information_bottleneck:
+            latent_dim = self.cnn_encoder.output_dim
+            prior = torch.distributions.Normal(
+                torch.zeros(latent_dim).to(global_device()),
+                torch.ones(latent_dim).to(global_device()))
+            kl_div_sum = 0
+            samples = []
+            for feat in [obs_feat, next_obs_feat]:
+                posteriors = [torch.distributions.Normal(mu, torch.sqrt(self._var)) for mu in torch.unbind(feat)]
+                samples.append(torch.stack([post.rsample() for post in posteriors]))
+                kl_divs = [torch.distributions.kl.kl_divergence(post, prior) for post in posteriors]
+                kl_div_sum += torch.sum(torch.stack(kl_divs))
+
+            feat = torch.cat(samples, dim=-1)
+        else:
+            feat = torch.cat([obs_feat, next_obs_feat], dim=-1)
+
+        # predict action from combined image features
+        pred_actions = self.head(feat)
+
+        # compute the action-prediction loss
         if self._discrete:
             if actions.shape[-1] == 1:
                 print('Cannot compute cross entropy loss with continuous action targets')
@@ -175,7 +210,10 @@ class InverseMI(Predictor):
                 print('Predicted and target actions do not have same shape. Are you using continuous target actions')
                 raise Exception
             loss = self._loss(pred_actions.flatten(), actions.flatten())
-        return loss
+        if self._information_bottleneck:
+            return {'KL': kl_div_sum * self._kl_weight, 'CELoss':loss}
+        else:
+            return {'CELoss': loss}
 
     def evaluate(self, samples_data):
         """ return dict of (stat name, value) """
@@ -222,7 +260,7 @@ class Regressor(Predictor):
         pred = self.forward([obs])
         loss = F.mse_loss(pred.flatten(), target.flatten())
 
-        return loss
+        return {'MSELoss': loss}
 
     def evaluate(self, samples_data):
         """ report mean squared error """
@@ -241,7 +279,8 @@ class RewardDecoder(Predictor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # 2% of dataset is neg reward, 1% is positive!
-        loss_weight = torch.Tensor([0.29, 0.01, 0.7])
+        #loss_weight = torch.Tensor([0.29, 0.01, 0.7])
+        loss_weight = torch.Tensor([1.0, 1.0, 1.0])
         self._loss = nn.CrossEntropyLoss(weight=loss_weight)
 
     def remap_reward(self, reward):
@@ -261,7 +300,7 @@ class RewardDecoder(Predictor):
         pred = self.forward([obs])
         loss = self._loss(pred, reward.flatten())
 
-        return loss
+        return {'CELoss': loss}
 
     def evaluate(self, samples_data):
         obs = samples_data['observation']

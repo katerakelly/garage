@@ -25,18 +25,20 @@ from garage.misc.exp_util import make_env, make_exp_name
 @click.option('--algo', default=None)
 @click.option('--image', is_flag=True)
 @click.option('--discrete', is_flag=True)
+@click.option('--ib', is_flag=True)
+@click.option('--klw', default=0.0)
 @click.option('--name', default=None)
 @click.option('--seed', default=1)
 @click.option('--gpu', default=0)
 @click.option('--debug', is_flag=True)
 @click.option('--overwrite', is_flag=True)
-def main(rb, env, algo, image, discrete, name, seed, gpu, debug, overwrite):
+def main(rb, env, algo, image, discrete, ib, klw, name, seed, gpu, debug, overwrite):
     name = make_exp_name(name, debug)
     name = f'ul/{name}'
     if debug:
         overwrite = True # always allow overwriting on a debug exp
     @wrap_experiment(prefix=env, name=name, snapshot_mode='last', archive_launch_repo=False, use_existing_dir=overwrite)
-    def train_inverse(ctxt, rb, env, algo, image, discrete, seed, gpu):
+    def train_inverse(ctxt, rb, env, algo, image, discrete, ib, klw, seed, gpu):
         """Set up environment and algorithm and run the task.
 
         Args:
@@ -76,13 +78,13 @@ def main(rb, env, algo, image, discrete, name, seed, gpu, debug, overwrite):
             # pass inputs through CNN (if images), then though
             # mlp to predict actions
             if algo == 'inverse':
-                predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete)}
+                predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete, information_bottleneck=ib, kl_weight=klw)}
             elif algo == 'inverse-reward':
                 reward_mlp = MLPModule(input_dim=obs_dim,
                                         output_dim=3,
                                         hidden_sizes=hidden_sizes,
                                         hidden_nonlinearity=nn.ReLU)
-                predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete), 'RewardDecode': RewardDecoder(cnn_encoder, reward_mlp)}
+                predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete, information_bottleneck=ib), 'RewardDecode': RewardDecoder(cnn_encoder, reward_mlp)}
                 loss_weights = {'InverseMI': 1.0, 'RewardDecode': 10.0}
         elif algo == 'cpc':
             predictors = {'CPC': CPC(cnn_encoder)}
@@ -116,6 +118,6 @@ def main(rb, env, algo, image, discrete, name, seed, gpu, debug, overwrite):
         runner.setup(algo=algo, env=env)
         runner.train(n_epochs=1000, batch_size=1000)
 
-    train_inverse(rb=rb, env=env, algo=algo, image=image, discrete=discrete, seed=seed, gpu=gpu)
+    train_inverse(rb=rb, env=env, algo=algo, image=image, discrete=discrete, ib=ib, klw=klw, seed=seed, gpu=gpu)
 
 main()

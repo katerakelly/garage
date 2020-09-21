@@ -47,7 +47,7 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
             eval_dicts = self.eval_once()
             # add the loss to the eval_dict
             for k in eval_dicts.keys():
-                eval_dicts[k].update({'loss': losses[k]})
+                eval_dicts[k].update(losses[k])
             # add the amount of data processed to logging
             eval_dicts['DataEpochs'] = ((runner.step_itr + 1) *self._steps_per_epoch * self._buffer_batch_size) / dsize
             self._log_statistics(eval_dicts)
@@ -65,9 +65,15 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
         losses = {}
         self._optimizer.zero_grad()
         for name, p in self.predictors.items():
-            loss = p.compute_loss(samples) * self._loss_weights[name]
-            loss.backward(retain_graph=True) # multiple predictors may optimize same network
-            losses[name] = loss.item()
+            # expect a dict here
+            loss_vals = p.compute_loss(samples)
+            for k, v in loss_vals.items():
+                v.backward(retain_graph=True)
+                d = {k: v.item()}
+                if name not in losses:
+                    losses[name] = d
+                else:
+                    losses[name].update(d)
         self._optimizer.step()
         return losses
 
