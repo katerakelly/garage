@@ -188,12 +188,13 @@ class InverseMI(Predictor):
             samples = []
             z_mean, z_std = [], []
             for feat in [obs_feat, next_obs_feat]:
-                posteriors = [torch.distributions.Normal(mu, torch.sqrt(self._var)) for mu in torch.unbind(feat)]
+                std = torch.sqrt(F.softplus(self._var))
+                posteriors = [torch.distributions.Normal(mu, std) for mu in torch.unbind(feat)]
                 samples.append(torch.stack([post.rsample() for post in posteriors]))
                 kl_divs = [torch.distributions.kl.kl_divergence(post, prior) for post in posteriors]
                 kl_div_sum += torch.sum(torch.stack(kl_divs))
                 # get mean and std of posteriors for logging
-                z_mean.append(torch.stack([post.mean for post in posteriors]).mean())
+                z_mean.append(torch.stack([torch.abs(post.mean) for post in posteriors]).mean())
                 z_std.append(torch.stack([post.stddev for post in posteriors]).mean())
 
             feat = torch.cat(samples, dim=-1)
