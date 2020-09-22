@@ -248,38 +248,6 @@ class InverseMI(Predictor):
         return eval_dict
 
 
-class Regressor(Predictor):
-    """
-    Predictor that regresses to a target with MSE loss
-    given the current observation
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    @property
-    def _data_key(self):
-        raise NotImplementedError
-
-    def compute_loss(self, samples_data):
-        obs = samples_data['observation']
-        target = samples_data[self._data_key]
-
-        # compute the loss
-        pred = self.forward([obs])
-        loss = F.mse_loss(pred.flatten(), target.flatten())
-
-        return {'MSELoss': loss}
-
-    def evaluate(self, samples_data):
-        """ report mean squared error """
-        obs = samples_data['observation']
-        state = samples_data[self._data_key]
-
-        pred_state = self.forward([obs])
-        mse = F.mse_loss(pred_state.flatten(), state.flatten())
-        return {'MSE': mse.item()}
-
-
 class RewardDecoder(Predictor):
     """
     classify the reward given the current observation
@@ -323,10 +291,29 @@ class RewardDecoder(Predictor):
         return eval_dict
 
 
-class StateDecoder(Regressor):
+class StateDecoder(Predictor):
     """
     Predict ground truth state from current observation
     """
-    @property
-    def _data_key(self):
-        return 'env_info'
+    def compute_loss(self, samples_data):
+        obs = samples_data['observation']
+        target = samples_data['env_info']
+
+        # compute the loss
+        pred = self.forward([obs])
+        loss = F.mse_loss(pred.flatten(), target.flatten())
+
+        return {'MSELoss': loss}
+
+    def evaluate(self, samples_data):
+        """ report mean squared error """
+        obs = samples_data['observation']
+        state = samples_data['env_info']
+
+        # TODO hard-coded for catcher env
+        pred_state = self.forward([obs])
+        # break out into error predicting agent loc and fruit loc
+        agent_mse = F.mse_loss(pred_state[..., :2].flatten(), state[..., :2].flatten())
+        fruit_mse = F.mse_loss(pred_state[..., 2:].flatten(), state[..., 2:].flatten())
+        return {'AgentMSE': agent_mse.item(), 'FruitMSE': fruit_mse.item()}
+
