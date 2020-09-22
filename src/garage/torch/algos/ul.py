@@ -67,20 +67,26 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
         samples = self.replay_buffer.sample_transitions(
             self._buffer_batch_size)
         samples = dict_np_to_torch(samples)
-        losses = {}
+        stats = {}
         self._optimizer.zero_grad()
         for name, p in self.predictors.items():
-            # expect a dict here
-            loss_vals = p.compute_loss(samples)
+            # losses and train stats should both be dicts
+            loss_vals, train_stats = p.compute_loss(samples)
             for k, v in loss_vals.items():
                 v.backward(retain_graph=True)
                 d = {k: v.item()}
-                if name not in losses:
-                    losses[name] = d
+                if name not in stats:
+                    stats[name] = d
                 else:
-                    losses[name].update(d)
+                    stats[name].update(d)
+            for k, v in train_stats.items():
+                d = {k: v}
+                if name not in stats:
+                    stats[name] = d
+                else:
+                    stats[name].update(d)
         self._optimizer.step()
-        return losses
+        return stats
 
     def eval_once(self):
         # perform evaluation of each predictor

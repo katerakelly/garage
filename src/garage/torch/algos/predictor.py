@@ -94,7 +94,7 @@ class CPC(Predictor):
         logits = self.compute_logits(anchor, positives)
         labels = torch.arange(logits.shape[0]).long().to(global_device())
         loss = self._loss(logits, labels)
-        return {'CELoss': loss}
+        return {'CELoss': loss}, {}
 
     def evaluate(self, samples_data):
         data = self.prepare_data(samples_data)
@@ -155,7 +155,7 @@ class InverseMI(Predictor):
         self._information_bottleneck = information_bottleneck
         if self._information_bottleneck:
             # use the same var for every datapoint, trainable
-            self._var = nn.Parameter(torch.ones(self.cnn_encoder.output_dim))
+            self._var = nn.Parameter(torch.zeros(self.cnn_encoder.output_dim) -3.)
             self._kl_weight = kl_weight
         if self._discrete:
             self._loss = nn.CrossEntropyLoss()
@@ -190,7 +190,7 @@ class InverseMI(Predictor):
                 posteriors = [torch.distributions.Normal(mu, std) for mu in torch.unbind(feat)]
                 samples.append(torch.stack([post.rsample() for post in posteriors]))
                 kl_divs = [torch.distributions.kl.kl_divergence(post, prior) for post in posteriors]
-                kl_div_sum += torch.sum(torch.stack(kl_divs))
+                kl_div_sum += torch.mean(torch.stack(kl_divs))
                 # get mean and std of posteriors for logging
                 z_mean.append(torch.stack([torch.abs(post.mean) for post in posteriors]).mean())
                 z_std.append(torch.stack([post.stddev for post in posteriors]).mean())
@@ -214,14 +214,11 @@ class InverseMI(Predictor):
                 raise Exception
             loss = self._loss(pred_actions.flatten(), actions.flatten())
         if self._information_bottleneck:
-            z_mean = torch.mean(torch.stack(z_mean))
-            z_std = torch.mean(torch.stack(z_std))
-            return {'KL': kl_div_sum * self._kl_weight,
-                    'CELoss': loss,
-                    'ZMean': z_mean,
-                    'ZStd': z_std}
+            z_mean = torch.mean(torch.stack(z_mean)).item()
+            z_std = torch.mean(torch.stack(z_std)).item()
+            return {'KL': kl_div_sum * self._kl_weight, 'CELoss': loss}, {'ZMean': z_mean, 'ZStd': z_std}
         else:
-            return {'CELoss': loss}
+            return {'CELoss': loss}, {}
 
     def evaluate(self, samples_data):
         """ return dict of (stat name, value) """
@@ -276,7 +273,7 @@ class RewardDecoder(Predictor):
         pred = self.forward([obs])
         loss = self._loss(pred, reward.flatten())
 
-        return {'CELoss': loss}
+        return {'CELoss': loss}, {}
 
     def evaluate(self, samples_data):
         obs = samples_data['observation']
@@ -303,7 +300,7 @@ class StateDecoder(Predictor):
         pred = self.forward([obs])
         loss = F.mse_loss(pred.flatten(), target.flatten())
 
-        return {'MSELoss': loss}
+        return {'MSELoss': loss}, {}
 
     def evaluate(self, samples_data):
         """ report mean squared error """
