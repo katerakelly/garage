@@ -35,7 +35,7 @@ def main(config, name, gpu, debug, overwrite):
     name = f'ul/{name}'
     if debug:
         overwrite = True # always allow overwriting on a debug exp
-    @wrap_experiment(prefix=variant['env'], name=name, snapshot_mode='last', archive_launch_repo=False, use_existing_dir=overwrite)
+    @wrap_experiment(prefix=variant['env'], name=name, snapshot_mode='none', archive_launch_repo=False, use_existing_dir=overwrite)
     def train_inverse(ctxt, variant):
         """Set up environment and algorithm and run the task.
 
