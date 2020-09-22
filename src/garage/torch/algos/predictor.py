@@ -113,6 +113,11 @@ class ForwardMI(CPC):
     """
     def __init__(self, cnn_encoder):
         super().__init__(cnn_encoder)
+        # NOTE hard-coded for catcher env
+        self.head = MLPModule(input_dim=self.cnn_encoder.output_dim * 3,
+                              output_dim=256,
+                              hidden_sizes=[],
+                              hidden_nonlinearity=None)
 
     def forward(self, inputs):
         """
@@ -123,7 +128,6 @@ class ForwardMI(CPC):
         """
         obs, next_obs, action = inputs
         if self.cnn_encoder is not None:
-            # TODO this might be slower than reshaping images into batch dim
             obs_feat = self.cnn_encoder(obs)
             next_obs_feat = self.cnn_encoder(next_obs)
         else:
@@ -133,9 +137,9 @@ class ForwardMI(CPC):
         # current observation feature, then sum across action dim
         # action essentially acts as a mask for the feature
         # NOTE tried to use torch.ger here and got a BLAS error
-        context = [torch.matmul(act[..., None], ob[None]) for ob, act in zip(torch.unbind(obs_feat), torch.unbind(action))]
-        context = [torch.sum(c, dim=0, keepdim=True) for c in context] # 1 x feat
-        context = torch.cat(context, dim=0) # batch x feat
+        context = [torch.matmul(act[..., None], ob[None]).view(-1) for ob, act in zip(torch.unbind(obs_feat), torch.unbind(action))]
+        context = torch.stack(context) # batch x feat
+        context = self.head(context)
         return context, next_obs_feat
 
     def prepare_data(self, samples_data):
