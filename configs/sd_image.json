@@ -1,0 +1,12 @@
+{
+    "env": "catcher-short",
+    "algo": "state-decode",
+    "rb": "50k",
+    "image": true,
+    "discrete": false,
+    "train_cnn": false,
+    "pretrain": "cpc",
+    "seed": 1,
+    "gpu": 3
+}
+

@@ -3,8 +3,8 @@
     "image": true,
     "bg": "none",
     "discrete": false,
-    "pretrain": false,
-    "train_cnn": true,
+    "pretrain": "ib_betap08",
+    "train_cnn": false,
     "seed": 1,
     "gpu": 0
 }

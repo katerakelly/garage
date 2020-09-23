@@ -1,10 +1,13 @@
 {
     "env": "catcher-short",
+    "algo": "forward",
+    "rb": "50k_norm",
     "image": true,
-    "bg": "none",
     "discrete": false,
-    "pretrain": false,
     "train_cnn": true,
+    "pretrain": false,
+    "ib": false,
+    "klw": 0.0,
     "seed": 1,
     "gpu": 0
 }
