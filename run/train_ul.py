@@ -103,9 +103,9 @@ def main(config, name, gpu, debug, overwrite):
         elif algo == 'state-decode':
             state_mlp = MLPModule(input_dim=obs_dim,
                                   output_dim=4,
-                                  hidden_sizes=hidden_sizes,
+                                  hidden_sizes=[256, 256],
                                   hidden_nonlinearity=nn.ReLU)
-            predictors = {'StateDecode': StateDecoder(cnn_encoder, state_mlp)}
+            predictors = {'StateDecode': StateDecoder(cnn_encoder, state_mlp, train_cnn=variant['train_cnn'])}
         else:
             print('Algorithm {} not implemented.'.format(algo))
             raise NotImplementedError
@@ -125,8 +125,7 @@ def main(config, name, gpu, debug, overwrite):
                            replay_buffer,
                            loss_weights = loss_weights,
                            lr=1e-2,
-                           buffer_batch_size=256,
-                           train_cnn=variant['train_cnn'])
+                           buffer_batch_size=256)
 
         if torch.cuda.is_available():
             set_gpu_mode(True, gpu_id=variant['gpu'])

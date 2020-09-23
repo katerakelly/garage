@@ -16,10 +16,19 @@ class Predictor(abc.ABC, nn.Module):
     """
     def __init__(self,
                  cnn_encoder,
-                 head):
+                 head,
+                 train_cnn=True):
         super().__init__()
         self.cnn_encoder = cnn_encoder
         self.head = head
+        self._train_cnn = train_cnn
+
+    def get_trainable_params(self):
+        """ return parameters to be trained by optimizer """
+        if self._train_cnn:
+            return list(self.parameters())
+        else:
+            return list(self.head.parameters())
 
     def forward(self, inputs):
         """ pass inputs through cnn encoder (if it exists) then head (if it exists) """
@@ -50,6 +59,9 @@ class CPC(Predictor):
         z_dim = self.cnn_encoder.output_dim
         self.W = nn.Parameter(torch.rand(z_dim, z_dim)) # optimized
         self._loss = nn.CrossEntropyLoss()
+
+    def get_trainable_params(self):
+        return list(self.parameters())
 
     def forward(self, inputs):
         """
@@ -119,6 +131,9 @@ class ForwardMI(CPC):
                               hidden_sizes=[],
                               hidden_nonlinearity=None)
 
+    def get_trainable_params(self):
+        return list(self.parameters())
+
     def forward(self, inputs):
         """
         inputs: [obs, next_obs, action]
@@ -161,6 +176,9 @@ class InverseMI(Predictor):
             self._loss = nn.CrossEntropyLoss()
         else:
             self._loss = F.mse_loss
+
+    def get_trainable_params(self):
+        return list(self.parameters())
 
     def compute_loss(self, samples_data):
         obs = samples_data['observation']
@@ -255,6 +273,9 @@ class RewardDecoder(Predictor):
         #loss_weight = torch.Tensor([0.29, 0.01, 0.7])
         loss_weight = torch.Tensor([1.0, 1.0, 1.0])
         self._loss = nn.CrossEntropyLoss(weight=loss_weight)
+
+    def get_trainable_params(self):
+        return list(self.parameters())
 
     def remap_reward(self, reward):
         # map the raw reward to three classes

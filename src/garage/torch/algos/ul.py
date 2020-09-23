@@ -20,8 +20,7 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
                  lr=1e-3,
                  buffer_batch_size=64,
                  steps_per_epoch=100,
-                 eval_batch_size=512,
-                 train_cnn=True):
+                 eval_batch_size=512):
         self.predictors = predictors
         self.replay_buffer = replay_buffer
         # if no loss weights given, weight equally
@@ -35,7 +34,7 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
 
         params = []
         for p in self.predictors.values():
-            params += list(p.parameters())
+            params += p.get_trainable_params()
         self._optimizer = torch.optim.SGD(params, lr=self._lr, momentum=0.9)
 
     def train(self, runner):
