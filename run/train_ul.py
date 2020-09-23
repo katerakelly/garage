@@ -79,6 +79,7 @@ def main(config, name, gpu, debug, overwrite):
             hidden_sizes = [] # linear decoder from conv features -> force information into the conv encoder
 
         loss_weights = None
+        momentum = 0.9
         if 'inverse' in algo:
             # make mlp to predict actions
             action_mlp = MLPModule(input_dim=obs_dim * 2,
@@ -98,6 +99,7 @@ def main(config, name, gpu, debug, overwrite):
                 loss_weights = {'InverseMI': 1.0, 'RewardDecode': 10.0}
         elif algo == 'cpc':
             predictors = {'CPC': CPC(cnn_encoder)}
+            momentum = 0.0
         elif algo == 'forward':
             predictors = {'ForwardMI': ForwardMI(cnn_encoder)}
         elif algo == 'state-decode':
@@ -125,7 +127,8 @@ def main(config, name, gpu, debug, overwrite):
                            replay_buffer,
                            loss_weights = loss_weights,
                            lr=1e-2,
-                           buffer_batch_size=256)
+                           buffer_batch_size=256,
+                           momentum=momentum)
 
         if torch.cuda.is_available():
             set_gpu_mode(True, gpu_id=variant['gpu'])
