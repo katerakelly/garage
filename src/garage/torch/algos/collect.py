@@ -45,6 +45,4 @@ class DataCollector(RLAlgorithm):
                     self.replay_buffer.add_path(d)
 
             runner.step_itr += 1
-        # save the replay buffer
-        runner.simple_save({'replay_buffer': self.replay_buffer}, name='replay_buffer')
 

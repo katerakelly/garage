@@ -3,6 +3,6 @@
 from garage.np.policies.fixed_policy import FixedPolicy
 from garage.np.policies.policy import Policy
 from garage.np.policies.scripted_policy import ScriptedPolicy
-from garage.np.policies.random import RandomPolicy
+from garage.np.policies.random import RandomPolicy, StaticPolicy
 
 __all__ = ['FixedPolicy', 'Policy', 'ScriptedPolicy', 'RandomPolicy']

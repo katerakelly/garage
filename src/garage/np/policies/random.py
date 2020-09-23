@@ -1,14 +1,14 @@
 import numpy as np
 from garage.np.policies import Policy
 
-class RandomPolicy(Policy):
+class OneHotPolicy(Policy):
 
     def __init__(self, env_spec):
         self._env_spec = env_spec
         self._action_dim = env_spec.action_space.flat_dim
 
     def get_action(self, observation):
-        action, info = self._env_spec.action_space.sample(), {}
+        action, info = self.sample_action(observation)
         one_hot_action = self._index_to_one_hot(action).squeeze(0)
         return one_hot_action, info
 
@@ -44,3 +44,15 @@ class RandomPolicy(Policy):
         one_hot[np.arange(arr.size), arr] = 1
         return one_hot
 
+
+class RandomPolicy(OneHotPolicy):
+
+    def sample_action(self, observation):
+        return self._env_spec.action_space.sample(), {}
+
+
+class StaticPolicy(OneHotPolicy):
+
+    def sample_action(self, observation):
+        # TODO hard-coded for catcher env to return none action
+        return 2, {}

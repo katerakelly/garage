@@ -1,8 +1,8 @@
 {
     "env": "catcher-short",
-    "image": "true",
-    "discrete": "true",
-    "name": "none",
+    "policy": "random-static",
+    "image": true,
+    "discrete": true,
     "seed": 1,
     "gpu": 0
 }
