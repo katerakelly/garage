@@ -72,7 +72,7 @@ def main(config, name, gpu, debug, overwrite):
                                         output_dim=256)
             # optionally load pre-trained weights
             pretrain = variant['pretrain']
-            if pretrain is not None:
+            if pretrain:
                 print('Loading pre-trained weights from {}...'.format(pretrain))
                 path_to_weights = f'output/{env_name}/ul/{pretrain}/encoder.pth'
                 cnn_encoder.load_state_dict(torch.load(path_to_weights))
