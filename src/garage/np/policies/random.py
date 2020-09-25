@@ -54,5 +54,6 @@ class RandomPolicy(OneHotPolicy):
 class StaticPolicy(OneHotPolicy):
 
     def sample_action(self, observation):
-        # TODO hard-coded for catcher env to return none action
-        return 2, {}
+        # TODO hard-coded for discrete envs that make noop actions the last action
+        action = self._env_spec.action_space.flat_dim - 1
+        return action, {}
