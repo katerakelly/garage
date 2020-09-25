@@ -26,11 +26,7 @@ class DataCollector(RLAlgorithm):
         """
         for _ in runner.step_epochs():
             for _ in range(self._steps_per_epoch):
-                if not (self.replay_buffer.n_transitions_stored >=
-                        self._min_buffer_size):
-                    batch_size = int(self._min_buffer_size)
-                else:
-                    batch_size = None
+                batch_size = int(self._min_buffer_size)
                 runner.step_path = runner.obtain_samples(
                     runner.step_itr, batch_size)
                 for path in runner.step_path:
