@@ -21,7 +21,8 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
                  buffer_batch_size=64,
                  steps_per_epoch=100,
                  eval_batch_size=512,
-                 momentum=0.9):
+                 momentum=0.9,
+                 snapshot_metric=None):
         self.predictors = predictors
         self.replay_buffer = replay_buffer
         # if no loss weights given, weight equally
@@ -32,6 +33,9 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
         self._buffer_batch_size = buffer_batch_size
         self._steps_per_epoch = steps_per_epoch
         self._eval_batch_size = eval_batch_size
+        self._snapshot_metric = snapshot_metric
+        # assume the metric is a loss: smaller is better
+        self._best_so_far = 1e6
 
         params = []
         for p in self.predictors.values():
@@ -55,8 +59,16 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
             self._log_statistics(eval_dicts)
             # NOTE: assumes predictors share conv encoder!!
             cnn_encoder = next(iter(self.predictors.values())).cnn_encoder
-            if cnn_encoder is not None:
-                runner.save_state_dict(cnn_encoder, 'encoder')
+            if self._snapshot_metric is not None:
+                a, b = self._snapshot_metric
+                if losses[a][b] < self._best_so_far:
+                    self._best_so_far = losses[a][b]
+                    print('Snapshotting encoder...')
+                    if cnn_encoder is not None:
+                        runner.save_state_dict(cnn_encoder, 'encoder')
+            else:
+                if cnn_encoder is not None:
+                    runner.save_state_dict(cnn_encoder, 'encoder')
             runner.step_itr += 1
 
     def train_once(self):

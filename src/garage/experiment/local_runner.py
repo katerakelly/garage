@@ -386,7 +386,13 @@ class LocalRunner:
         params['worker_class'] = self._worker_class
         params['worker_args'] = self._worker_args
 
-        self._snapshotter.save_itr_params(epoch, params)
+        # let the algorithm pre-empt snapshotting
+        if hasattr(self._algo, 'save_snapshot'):
+            if self._algo.save_snapshot:
+                self._snapshotter.save_itr_params(epoch, params)
+        else:
+            self._snapshotter.save_itr_params(epoch, params)
+
 
         logger.log('Saved')
 

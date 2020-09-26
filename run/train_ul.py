@@ -80,6 +80,7 @@ def main(config, name, gpu, debug, overwrite):
 
         loss_weights = None
         momentum = 0.9
+        snapshot_metric = None
         if 'inverse' in algo:
             # make mlp to predict actions
             action_mlp = MLPModule(input_dim=obs_dim * 2,
@@ -100,8 +101,10 @@ def main(config, name, gpu, debug, overwrite):
         elif algo == 'cpc':
             predictors = {'CPC': CPC(cnn_encoder)}
             momentum = 0.0
+            snapshot_metric = ['CPC', 'CELoss']
         elif algo == 'forward':
             predictors = {'ForwardMI': ForwardMI(cnn_encoder)}
+            snapshot_metric = ['ForwardMI', 'CELoss']
         elif algo == 'state-decode':
             state_mlp = MLPModule(input_dim=obs_dim,
                                   output_dim=4,
@@ -128,7 +131,8 @@ def main(config, name, gpu, debug, overwrite):
                            loss_weights = loss_weights,
                            lr=1e-2,
                            buffer_batch_size=256,
-                           momentum=momentum)
+                           momentum=momentum,
+                           snapshot_metric=snapshot_metric)
 
         if torch.cuda.is_available():
             set_gpu_mode(True, gpu_id=variant['gpu'])
