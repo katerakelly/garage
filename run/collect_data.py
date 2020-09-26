@@ -50,14 +50,25 @@ def main(config, name, gpu, debug, overwrite):
         # make the env, given name and whether to use image obs
         image = variant['image']
         env = make_env(variant['env'], image, discrete=variant['discrete'])
+        action_dim = env.spec.action_space.flat_dim
 
         policy = variant['policy']
         if policy == 'random':
             policies = [RandomPolicy(env_spec=env.spec)]
         elif policy == 'random-static':
             random_policy = RandomPolicy(env_spec=env.spec)
-            static_policy = StaticPolicy(env_spec=env.spec)
+            static_policy = StaticPolicy(env_spec=env.spec, action=action_dim-1)
             policies = [random_policy, static_policy]
+        elif policy == 'random-static-gripper':
+            if 'gripper' not in variant['env']:
+                print('Cannot collect gripper data in non-gripper data')
+                raise Exception
+            random_policy = RandomPolicy(env_spec=env.spec)
+            static_policy = StaticPolicy(env_spec=env.spec, action=action_dim-1)
+            gripper_policy = StaticPolicy(env_spec=env.spec, action=2)
+            policies = [random_policy, static_policy, gripper_policy]
+        else:
+            raise NotImplementedError
 
         # if collecting images, do not make this too large, or will get a memory error
         num_collect = int(5e4)
@@ -66,7 +77,7 @@ def main(config, name, gpu, debug, overwrite):
         for policy in policies:
             print(f'Collecting from policy: {policy}')
             # set min buffer size to num_collect in order to collect in a single epoch
-            algo = DataCollector(policy, replay_buffer, steps_per_epoch=1, max_path_length=500, min_buffer_size=num_collect // 2, image=image)
+            algo = DataCollector(policy, replay_buffer, steps_per_epoch=1, max_path_length=500, min_buffer_size=num_collect // len(policies), image=image)
 
             runner.setup(algo=algo, env=env, sampler_cls=LocalSampler)
             # every epoch, and every step per epoch, max(batch_size, traj_length) samples will be collected

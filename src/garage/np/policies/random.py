@@ -46,14 +46,18 @@ class OneHotPolicy(Policy):
 
 
 class RandomPolicy(OneHotPolicy):
+    """ Select action uniformly randomly """
 
     def sample_action(self, observation):
         return self._env_spec.action_space.sample(), {}
 
 
 class StaticPolicy(OneHotPolicy):
+    """ Always return the same constant action """
+
+    def __init__(self, env_spec, action):
+        super().__init__(env_spec)
+        self.action = action
 
     def sample_action(self, observation):
-        # TODO hard-coded for discrete envs that make noop actions the last action
-        action = self._env_spec.action_space.flat_dim - 1
-        return action, {}
+        return self.action, {}
