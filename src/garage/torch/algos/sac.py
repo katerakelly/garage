@@ -112,6 +112,7 @@ class SAC(RLAlgorithm):
             eval_env=None,
             train_cnn=True,
             save_buffer=False,
+            save_policy=True,
     ):
 
         self._qf1 = qf1
@@ -137,6 +138,7 @@ class SAC(RLAlgorithm):
         self.env_spec = env_spec
         self.replay_buffer = replay_buffer
         self._save_buffer = save_buffer
+        self._save_policy = save_policy
 
         self.sampler_cls = RaySampler
 
@@ -192,6 +194,7 @@ class SAC(RLAlgorithm):
         if not self._eval_env:
             self._eval_env = runner.get_env_copy()
         last_return = None
+        best_return = -np.inf
         for _ in runner.step_epochs():
             for _ in range(self._steps_per_epoch):
                 if not (self.replay_buffer.n_transitions_stored >=
@@ -218,8 +221,12 @@ class SAC(RLAlgorithm):
             self._log_statistics(policy_loss, qf1_loss, qf2_loss, policy_entropy)
             tabular.record('TotalEnvSteps', runner.total_env_steps)
             runner.step_itr += 1
+            if self._save_policy and np.mean(last_return) > best_return:
+                print('Saving policy...')
+                runner.save_state_dict(self.policy, 'policy')
         if self._save_buffer:
             # save the replay buffer
+            print('Saving replay buffer...')
             runner.simple_save({'replay_buffer': self.replay_buffer}, name='replay_buffer')
 
         return np.mean(last_return)
