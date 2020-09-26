@@ -17,10 +17,12 @@ class Predictor(abc.ABC, nn.Module):
     def __init__(self,
                  cnn_encoder,
                  head,
+                 action_dim=None,
                  train_cnn=True):
         super().__init__()
         self.cnn_encoder = cnn_encoder
         self.head = head
+        self._action_dim = action_dim
         self._train_cnn = train_cnn
 
     def get_trainable_params(self):
@@ -54,8 +56,8 @@ class CPC(Predictor):
     """
     Maximizes I(z_{t+1}, z_t)
     """
-    def __init__(self, cnn_encoder):
-        super().__init__(cnn_encoder, head=None)
+    def __init__(self, cnn_encoder, **kwargs):
+        super().__init__(cnn_encoder, head=None, **kwargs)
         z_dim = self.cnn_encoder.output_dim
         self.W = nn.Parameter(torch.rand(z_dim, z_dim)) # optimized
         self._loss = nn.CrossEntropyLoss()
@@ -123,11 +125,11 @@ class ForwardMI(CPC):
     """
     UL algorithm that maximizes I(z_{t+1}; z_t, a_t)
     """
-    def __init__(self, cnn_encoder):
-        super().__init__(cnn_encoder)
+    def __init__(self, cnn_encoder, **kwargs):
+        super().__init__(cnn_encoder, **kwargs)
         # NOTE hard-coded for catcher env
         self.context_head = MLPModule(input_dim=self.cnn_encoder.output_dim,
-                              output_dim=self.cnn_encoder.output_dim * 3,
+                              output_dim=self.cnn_encoder.output_dim * self._action_dim,
                               hidden_sizes=[],
                               hidden_nonlinearity=None)
 
@@ -143,7 +145,7 @@ class ForwardMI(CPC):
         """
         obs, next_obs, action = inputs
         if self.cnn_encoder is not None:
-            obs_feat = self.context_head(self.cnn_encoder(obs)).view(-1, self.cnn_encoder.output_dim, 3)
+            obs_feat = self.context_head(self.cnn_encoder(obs)).view(-1, self.cnn_encoder.output_dim, self._action_dim)
             next_obs_feat = self.cnn_encoder(next_obs)
         else:
             obs_feat = obs
@@ -332,6 +334,11 @@ class StateDecoder(Predictor):
         pred_state = self.forward([obs])
         # break out into error predicting agent loc and fruit loc
         agent_mse = F.mse_loss(pred_state[..., :2].flatten(), state[..., :2].flatten())
-        fruit_mse = F.mse_loss(pred_state[..., 2:].flatten(), state[..., 2:].flatten())
-        return {'AgentMSE': agent_mse.item(), 'FruitMSE': fruit_mse.item()}
+        fruit_mse = F.mse_loss(pred_state[..., 2:4].flatten(), state[..., 2:4].flatten())
+        stats = {'AgentMSE': agent_mse.item(), 'FruitMSE': fruit_mse.item()}
+        if self._action_dim > 3:
+            gripper_mse = F.mse_loss(pred_state[..., -1].flatten(), state[..., -1].flatten())
+            stats.update({'GripperMSE': gripper_mse.item()})
+        return stats
+
 

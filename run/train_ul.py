@@ -90,27 +90,29 @@ def main(config, name, gpu, debug, overwrite):
             # pass inputs through CNN (if images), then though
             # mlp to predict actions
             if algo == 'inverse':
-                predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete, information_bottleneck=variant['ib'], kl_weight=variant['klw'])}
+                predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, action_dim=action_dim,  discrete=discrete, information_bottleneck=variant['ib'], kl_weight=variant['klw'])}
             elif algo == 'inverse-reward':
                 reward_mlp = MLPModule(input_dim=obs_dim,
                                         output_dim=3,
                                         hidden_sizes=hidden_sizes,
                                         hidden_nonlinearity=nn.ReLU)
-                predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, discrete=discrete, information_bottleneck=variant['ib']), 'RewardDecode': RewardDecoder(cnn_encoder, reward_mlp)}
+                predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, action_dim=action_dim, discrete=discrete, information_bottleneck=variant['ib']), 'RewardDecode': RewardDecoder(cnn_encoder, reward_mlp, action_dim=action_dim)}
                 loss_weights = {'InverseMI': 1.0, 'RewardDecode': 10.0}
         elif algo == 'cpc':
-            predictors = {'CPC': CPC(cnn_encoder)}
+            predictors = {'CPC': CPC(cnn_encoder, action_dim=action_dim)}
             momentum = 0.0
             snapshot_metric = ['CPC', 'CELoss']
         elif algo == 'forward':
-            predictors = {'ForwardMI': ForwardMI(cnn_encoder)}
+            predictors = {'ForwardMI': ForwardMI(cnn_encoder, action_dim=action_dim)}
             snapshot_metric = ['ForwardMI', 'CELoss']
         elif algo == 'state-decode':
+            output_dim = 5 if 'gripper' in env_name else 4
             state_mlp = MLPModule(input_dim=obs_dim,
-                                  output_dim=4,
+                                  output_dim=output_dim,
                                   hidden_sizes=[256, 256],
                                   hidden_nonlinearity=nn.ReLU)
-            predictors = {'StateDecode': StateDecoder(cnn_encoder, state_mlp, train_cnn=variant['train_cnn'])}
+            gripper = 'gripper' in env_name
+            predictors = {'StateDecode': StateDecoder(cnn_encoder, state_mlp, action_dim=action_dim, train_cnn=variant['train_cnn'])}
         else:
             print('Algorithm {} not implemented.'.format(algo))
             raise NotImplementedError
