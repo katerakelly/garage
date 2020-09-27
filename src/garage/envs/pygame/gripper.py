@@ -49,9 +49,9 @@ class Gripper(Catcher):
 
     def init(self):
         super().init()
-        # add new action to open/close gripper
-        open_action = {'open': 0}
-        self.actions.update(open_action)
+        # add new actions to combine changing gripper state w/each existing action
+        new_actions = {'left-change': -1, 'right-change': -2, 'stay-change': -3}
+        self.actions.update(new_actions)
         # implement w/ two Paddle objects, one for open, one for closed
         self.player_open = ColoredPaddle(self.player_speed, self.paddle_width,
                 self.paddle_height, self.width, self.height)
@@ -68,17 +68,31 @@ class Gripper(Catcher):
                 key = event.key
 
                 if key == self.actions['left']:
+                    # move left, don't change gripper
                     self.dx -= self.player_speed
-
+                if key == self.actions['left-change']:
+                    # move left, change gripper
+                    self.dx -= self.player_speed
+                    self._change_player()
                 if key == self.actions['right']:
+                    # move right, don't change gripper
                     self.dx += self.player_speed
+                if key == self.actions['right-change']:
+                    # move right, change gripper
+                    self.dx += self.player_speed
+                    self._change_player()
+                if key == self.actions['stay-change']:
+                    # stay in place, change gripper
+                    self._change_player()
+            # NOTE: ple wrapper will add noop action that effectively
+            # stays in place and does not change gripper
 
-                # if opn/close action is taken, switch the active player
-                if key == self.actions['open']:
-                    if self.active_player == self.player:
-                        self.active_player = self.player_open
-                    else:
-                        self.active_player = self.player
+    def _change_player(self):
+        ''' switch the active player '''
+        if self.active_player == self.player:
+            self.active_player = self.player_open
+        else:
+            self.active_player = self.player
 
     def getGameState(self):
         """

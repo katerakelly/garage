@@ -86,14 +86,8 @@ class PygameGripperShortEnv(ModifiedBaseEnv, Serializable):
     def step(self, action):
         # convert cont. action to discrete
         if not self.discrete:
-            if action < 0.25:
-                action = 0
-            elif action > 0.25 and action < 0.50:
-                action = 1
-            elif action > 0.50 and action < 0.75:
-                action = 2
-            else:
-                action = 3
+            bins = np.linspace(0, 1, num=len(self.action_set))
+            action = sum(1 - (action < bins).astype(int)) - 1
         # policy outputs categorical dist over actions, take max
         else:
             action = np.argmax(action)
