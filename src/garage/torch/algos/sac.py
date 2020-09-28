@@ -178,6 +178,15 @@ class SAC(RLAlgorithm):
         else:
             self._log_alpha = torch.Tensor([self._fixed_alpha]).log()
         self.episode_rewards = deque(maxlen=30)
+        self.episode_scores = deque(maxlen=30)
+
+    def compute_scores(self, rewards):
+        # hard-coded to arrow env, convert rewards to scores
+        scores = np.zeros(len(rewards))
+        scores[rewards < 0] = 0
+        scores[rewards == 0] = -1
+        scores[rewards == 1] = 1
+        return scores
 
     def train(self, runner):
         """Obtain samplers and start actual training for each epoch.
@@ -205,6 +214,7 @@ class SAC(RLAlgorithm):
                 runner.step_path = runner.obtain_samples(
                     runner.step_itr, batch_size)
                 path_returns = []
+                path_scores = []
                 for path in runner.step_path:
                     self.replay_buffer.add_path(
                         dict(observation=path['observations'],
@@ -213,8 +223,10 @@ class SAC(RLAlgorithm):
                              next_observation=path['next_observations'],
                              terminal=path['dones'].reshape(-1, 1)))
                     path_returns.append(sum(path['rewards']))
+                    path_scores.append(sum(self.compute_scores(path['rewards'])))
                 assert len(path_returns) == len(runner.step_path)
                 self.episode_rewards.append(np.mean(path_returns))
+                self.episode_scores.append(np.mean(path_scores))
                 for _ in range(self._gradient_steps):
                     policy_loss, qf1_loss, qf2_loss, policy_entropy = self.train_once()
             last_return = self._evaluate_policy(runner.step_itr)
@@ -513,6 +525,8 @@ class SAC(RLAlgorithm):
                        self.replay_buffer.n_transitions_stored)
         tabular.record('Average/TrainAverageReturn',
                        np.mean(self.episode_rewards))
+        tabular.record('Average/TrainAverageScore',
+                       np.mean(self.episode_scores))
 
     @property
     def networks(self):
