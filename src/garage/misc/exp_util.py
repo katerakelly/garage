@@ -29,6 +29,8 @@ def make_env(env_name, is_image, bg=None, discrete=False, frame_stack=1):
         env = gym.make('Catcher-PLE-serial-short-v0', discrete=discrete)
     elif env_name == 'gripper-short':
         env = gym.make('Gripper-PLE-serial-short-v0', discrete=discrete)
+    elif env_name == 'arrow-short':
+        env = gym.make('Arrow-PLE-serial-short-v0', discrete=discrete)
     if is_image:
         env = PixelObservationWrapper(env)
         if bg == 'ideal_gas':

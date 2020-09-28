@@ -70,14 +70,14 @@ class PygameCatcherShortEnv(PygameCatcherEnv, Serializable):
         return ob, reward, done, info
 
 
-class PygameGripperShortEnv(ModifiedBaseEnv, Serializable):
+class PygameVariationShortEnv(ModifiedBaseEnv, Serializable):
     """
     modified catcher game to have a gripper on the agent
     also combines all the modifications of above envs
     """
-    def __init__(self, discrete, normalize=True, display=False, **kwargs):
-        self.game_name = 'Gripper'
-        self.init(normalize, display, **kwargs)
+    def __init__(self, game_name, discrete, normalize=True, display=False, **kwargs):
+        self.game_name = game_name
+        self.init(game_name, normalize, display, **kwargs)
         self.quick_init(locals())
         self.discrete = discrete
         if not self.discrete:
@@ -107,3 +107,16 @@ class PygameGripperShortEnv(ModifiedBaseEnv, Serializable):
         state_normal[2] = (state_normal[2] - 26) / 26
         state_normal[3] = (state_normal[3] - 20) / 45
         return state_normal
+
+
+class PygameGripperShortEnv(PygameVariationShortEnv, Serializable):
+    def __init__(self, *args, **kwargs):
+        self.quick_init(locals())
+        super().__init__('gripper', *args, **kwargs)
+
+
+class PygameArrowShortEnv(PygameVariationShortEnv, Serializable):
+    def __init__(self, *args, **kwargs):
+        self.quick_init(locals())
+        super().__init__('arrow', *args, **kwargs)
+
