@@ -1,7 +1,7 @@
 {
-    "env": "catcher-short",
+    "env": "gripper-short",
     "algo": "cpc",
-    "rb": "50k_random_static",
+    "rb": "50k_6action",
     "image": true,
     "discrete": false,
     "train_cnn": true,

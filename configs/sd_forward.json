@@ -1,11 +1,11 @@
 {
-    "env": "catcher-short",
+    "env": "gripper-short",
     "algo": "state-decode",
-    "rb": "50k_norm",
+    "rb": "50k_rg",
     "image": true,
-    "discrete": false,
+    "discrete": true,
     "train_cnn": false,
-    "pretrain": "forward_wstatic",
+    "pretrain": "forward_rg",
     "seed": 1,
     "gpu": 2
 }

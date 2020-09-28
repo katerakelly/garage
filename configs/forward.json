@@ -1,9 +1,9 @@
 {
-    "env": "catcher-short",
+    "env": "gripper-short",
     "algo": "forward",
-    "rb": "50k_norm",
+    "rb": "50k_rg",
     "image": true,
-    "discrete": false,
+    "discrete": true,
     "train_cnn": true,
     "pretrain": false,
     "ib": false,

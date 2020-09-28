@@ -59,14 +59,14 @@ def main(config, name, gpu, debug, overwrite):
             random_policy = RandomPolicy(env_spec=env.spec)
             static_policy = StaticPolicy(env_spec=env.spec, action=action_dim-1)
             policies = [random_policy, static_policy]
-        elif policy == 'random-static-gripper':
+        elif policy == 'random-gripper':
             if 'gripper' not in variant['env']:
                 print('Cannot collect gripper data in non-gripper data')
                 raise Exception
             random_policy = RandomPolicy(env_spec=env.spec)
-            static_policy = StaticPolicy(env_spec=env.spec, action=action_dim-1)
-            gripper_policy = StaticPolicy(env_spec=env.spec, action=2)
-            policies = [random_policy, static_policy, gripper_policy]
+            policies = [random_policy]
+            for act in [4, 5]:
+                policies.append(StaticPolicy(env_spec=env.spec, action=act))
         else:
             raise NotImplementedError
 

@@ -1,9 +1,9 @@
 {
-    "env": "catcher-short",
+    "env": "gripper-short",
     "image": true,
     "bg": "none",
     "discrete": false,
-    "pretrain": "cpc_wstatic",
+    "pretrain": "cpc_6",
     "train_cnn": false,
     "seed": 1,
     "gpu": 0

@@ -104,6 +104,7 @@ def main(config, name, gpu, debug, overwrite):
             snapshot_metric = ['CPC', 'CELoss']
         elif algo == 'forward':
             predictors = {'ForwardMI': ForwardMI(cnn_encoder, action_dim=action_dim)}
+            #momentum = 0.0
             snapshot_metric = ['ForwardMI', 'CELoss']
         elif algo == 'state-decode':
             output_dim = 5 if 'gripper' in env_name else 4

@@ -95,6 +95,13 @@ class CPC(Predictor):
     def prepare_data(self, samples_data):
         obs = samples_data['observation']
         next_obs = samples_data['next_observation']
+        if torch.isnan(obs).byte().any() or torch.isnan(next_obs).byte().any():
+            print('an input is NaN')
+            raise Exception
+        if (np.abs(obs) > 1).any() or (np.abs(next_obs) > 1).any():
+            print(obs)
+            print(next_obs)
+            raise Exception
         return [obs, next_obs]
 
     def compute_loss(self, samples_data):
@@ -108,7 +115,11 @@ class CPC(Predictor):
         logits = self.compute_logits(anchor, positives)
         labels = torch.arange(logits.shape[0]).long().to(global_device())
         loss = self._loss(logits, labels)
-        return {'CELoss': loss}, {}
+        avg_logit = torch.abs(logits).mean().item()
+        w_norm = torch.abs(self.W).mean().item()
+        anchor_norm = torch.abs(anchor).mean().item()
+        positives_norm = torch.abs(positives).mean().item()
+        return {'CELoss': loss}, {'AvgLogit': avg_logit, 'WNorm': w_norm, 'AnchorNorm': anchor_norm, 'PositiveNorm': positives_norm}
 
     def evaluate(self, samples_data):
         data = self.prepare_data(samples_data)
@@ -166,8 +177,8 @@ class InverseMI(Predictor):
     """
     UL algorithm that trains an inverse model p(a | o_t, o_t+1)
     """
-    def __init__(self, cnn_encoder, head, discrete=True, information_bottleneck=False, kl_weight=1.0):
-        super().__init__(cnn_encoder, head)
+    def __init__(self, cnn_encoder, head, discrete=True, information_bottleneck=False, kl_weight=1.0, **kwargs):
+        super().__init__(cnn_encoder, head, **kwargs)
         self._discrete = discrete
         self._information_bottleneck = information_bottleneck
         if self._information_bottleneck:

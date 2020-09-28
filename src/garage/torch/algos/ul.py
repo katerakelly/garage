@@ -1,6 +1,7 @@
 import abc
 from dowel import tabular
 import torch
+from torch import nn
 
 from garage.np.algos import RLAlgorithm
 from garage.torch import dict_np_to_torch, global_device
@@ -48,7 +49,8 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
         for _ in runner.step_epochs():
             # train
             for _ in range(self._steps_per_epoch):
-                losses = self.train_once()
+                with torch.autograd.detect_anomaly():
+                    losses = self.train_once()
             #eval
             eval_dicts = self.eval_once()
             # add the loss to the eval_dict
@@ -82,6 +84,9 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
             # losses and train stats should both be dicts
             loss_vals, train_stats = p.compute_loss(samples)
             for k, v in loss_vals.items():
+                if torch.isnan(v):
+                    print('Loss is NaN')
+                    #raise Exception
                 v.backward(retain_graph=True)
                 d = {k: v.item()}
                 if name not in stats:
@@ -94,6 +99,18 @@ class ULAlgorithm(RLAlgorithm, abc.ABC):
                     stats[name] = d
                 else:
                     stats[name].update(d)
+            grad_norm = nn.utils.clip_grad_norm_(list(p.parameters()), 10.0, norm_type=2)
+            avg_weight1 = torch.abs(p.cnn_encoder.conv1.weight).mean()
+            avg_weight2 = torch.abs(p.cnn_encoder.conv2.weight).mean()
+            avg_weight3 = torch.abs(p.cnn_encoder.conv3.weight).mean()
+            avg_weight4 = torch.abs(p.cnn_encoder.conv4.weight).mean()
+            avg_weight5 = torch.abs(p.cnn_encoder.conv5.weight).mean()
+            stats[name].update({'AvgConv1Weight': avg_weight1.item()})
+            stats[name].update({'AvgConv2Weight': avg_weight2.item()})
+            stats[name].update({'AvgConv3Weight': avg_weight3.item()})
+            stats[name].update({'AvgConv4Weight': avg_weight4.item()})
+            stats[name].update({'AvgConv5Weight': avg_weight5.item()})
+            stats[name].update({'AvgGradNorm': grad_norm})
         self._optimizer.step()
         return stats
 
