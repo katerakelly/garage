@@ -56,7 +56,7 @@ def main(config, name, gpu, debug, overwrite):
 
         # make the env, given name and whether to use image obs
         env_name = variant['env']
-        env = make_env(env_name, image, discrete=discrete)
+        env = make_env(env_name, image, discrete=discrete, delay=variant['delay'])
 
         # make cnn encoder if learning from images
         cnn_encoder = None
@@ -93,7 +93,7 @@ def main(config, name, gpu, debug, overwrite):
                 predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, action_dim=action_dim,  discrete=discrete, information_bottleneck=variant['ib'], kl_weight=variant['klw'])}
             elif algo == 'inverse-reward':
                 reward_mlp = MLPModule(input_dim=obs_dim,
-                                        output_dim=3,
+                                        output_dim=1,
                                         hidden_sizes=hidden_sizes,
                                         hidden_nonlinearity=nn.ReLU)
                 predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, action_dim=action_dim, discrete=discrete, information_bottleneck=variant['ib']), 'RewardDecode': RewardDecoder(cnn_encoder, reward_mlp, action_dim=action_dim)}

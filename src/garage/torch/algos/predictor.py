@@ -282,43 +282,27 @@ class RewardDecoder(Predictor):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # 2% of dataset is neg reward, 1% is positive!
-        #loss_weight = torch.Tensor([0.29, 0.01, 0.7])
-        loss_weight = torch.Tensor([1.0, 1.0, 1.0])
-        self._loss = nn.CrossEntropyLoss(weight=loss_weight)
 
     def get_trainable_params(self):
         return list(self.parameters())
-
-    def remap_reward(self, reward):
-        # map the raw reward to three classes
-        reward[reward == -1.0] = 0
-        reward[reward == 0.0] = 1
-        reward[reward == 1.0] = 2
-        return reward
 
     def compute_loss(self, samples_data):
         # predict reward from NEXT obs since this is what it depends on in this env
         obs = samples_data['next_observation']
         reward = samples_data['reward']
-        reward = self.remap_reward(reward).long()
 
         # compute the loss
         pred = self.forward([obs])
-        loss = self._loss(pred, reward.flatten())
+        loss = F.mse_loss(pred.flatten(), reward.flatten())
 
-        return {'CELoss': loss}, {}
+        return {'MSELoss': loss}, {}
 
     def evaluate(self, samples_data):
         obs = samples_data['observation']
         reward = samples_data['reward']
-        reward = self.remap_reward(reward).cpu().numpy().flatten()
-        pred = torch.argmax(self.forward([obs]), dim=-1).detach().cpu().numpy()
-
-        # separate metric by reward value (since there are only a few)
-        reward_vals = list(range(3))
-        accs = compute_perclass_accuracy(pred, reward, reward_vals)
-        eval_dict = dict([(f'reward_{r}', acc) for r, acc in zip(reward_vals, accs)])
+        pred = self.forward([obs])
+        loss = F.mse_loss(pred.flatten(), reward.flatten())
+        eval_dict = {'RewardMSE': loss.item()}
         return eval_dict
 
 

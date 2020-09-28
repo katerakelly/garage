@@ -1,4 +1,5 @@
 import pygame
+import numpy as np
 from ple.games import Catcher
 from ple.games.catcher import Fruit
 from ple.games.catcher import Paddle
@@ -50,6 +51,16 @@ class ArrowFruit(Fruit):
         else:
             screen.blit(self.image, self.rect.center)
 
+    def get_state(self):
+        if self.timestep < self.delay:
+            # return state of the arrow
+            return self.arrow_rect.center[0], self.arrow_rect.center[1]
+            # TODO remove
+            #return 0, 0
+        else:
+            # return state of fruit
+            return self.rect.center[0], self.rect.center[1]
+
 
 class Arrow(Catcher):
     '''
@@ -58,11 +69,12 @@ class Arrow(Catcher):
     that appears at the top of the screen where the fruit
     will fall
     '''
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, delay=6, **kwargs):
         super().__init__(*args, **kwargs)
         self.fruit_fall_speed = 4 * self.fruit_fall_speed
         self.player_speed = 0.25 * self.player_speed
-        self.delay = 4
+        print('Setting delay in arrow to: {}'.format(delay))
+        self.delay = delay
 
     def init(self):
         self.score = 0
@@ -80,12 +92,24 @@ class Arrow(Catcher):
         """
         add position of arrow to state
         """
+        fruit_x, fruit_y = self.fruit.get_state()
         state = {
             "player_x": self.player.rect.center[0],
             "player_vel": self.player.vel,
-            "fruit_x": self.fruit.rect.center[0],
-            "fruit_y": self.fruit.rect.center[1],
-            #"arrow_x": self.fruit.arrow_rect.center[0]
+            "fruit_x": fruit_x,
+            "fruit_y": fruit_y,
         }
 
         return state
+
+    def distance2fruit(self):
+        """
+        return x-distance from agent to fruit
+        """
+        if self.fruit.timestep < self.fruit.delay:
+            # fruit is not visible, just return max distance
+            return 36
+        else:
+            fruit_x, _ = self.fruit.get_state()
+            player_x = self.player.rect.center[0]
+            return np.abs(player_x - fruit_x)

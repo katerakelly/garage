@@ -5,6 +5,7 @@ import gym
 from gym import spaces
 from ple import PLE
 from garage.envs.pygame.gripper import Gripper
+from garage.envs.pygame.arrow import Arrow
 
 
 class BaseEnv(gym.Env):
@@ -76,9 +77,14 @@ class BaseEnv(gym.Env):
 
 class ModifiedBaseEnv(BaseEnv):
   ''' modify init() to create custom ple env '''
-  def init(self, normalize, display, **kwargs):
-    # NOTE making custom gripper env here
-    self.game = Gripper(**kwargs)
+  def init(self, game_name, normalize, display, **kwargs):
+    # NOTE making custom env here
+    if game_name == 'gripper':
+        self.game = Gripper(**kwargs)
+    elif game_name == 'arrow':
+        self.game = Arrow(**kwargs)
+    else:
+        raise NotImplementedError
 
     if display == False:
       # Do not open a PyGame window

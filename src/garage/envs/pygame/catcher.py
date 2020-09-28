@@ -120,3 +120,19 @@ class PygameArrowShortEnv(PygameVariationShortEnv, Serializable):
         self.quick_init(locals())
         super().__init__('arrow', *args, **kwargs)
 
+
+    def step(self, action):
+        ob, score, done, info = super().step(action)
+        # compute a dense reward based on distance to fruit
+        if score == 0:
+            # HACK don't let this be 0, because 0 is reserved for not catching
+            reward = min(-self.game.distance2fruit(), -1) / 100.
+        elif score < 0:
+            # agent just failed to catch fruit
+            # this makes it identifiable
+            reward = 0
+        else:
+            reward = score
+        return ob, reward, done, info
+
+
