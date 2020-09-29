@@ -35,18 +35,24 @@ class ArrowFruit(Fruit):
             self.timestep += 1
         else:
             super().update(dt)
+            self.timestep += 1
 
     def reset(self):
         # NOTE removed *2 here to allow more x-range
         x = self.rng.choice( range(self.size, self.SCREEN_WIDTH-self.size, self.size) )
 
         # NOTE very last step of episode will have the arrow instead of the fruit...
-        self.rect.center = (x, 0)
+        mult = 0
+        if self.delay == 0:
+            mult = -2
+        self.rect.center = (x, mult * self.size) # note must take fruit speed into account to keep it out of sight
         self.arrow_rect.center = (x, 0)
         self.timestep = 0
 
     def draw(self, screen):
-        if self.timestep < self.delay:
+        if self.timestep == 0:
+            pass
+        elif self.timestep < self.delay:
             screen.blit(self.arrow_image, self.arrow_rect.center)
         else:
             screen.blit(self.image, self.rect.center)
@@ -70,7 +76,6 @@ class Arrow(Catcher):
         super().__init__(*args, **kwargs)
         self.fruit_fall_speed = 4 * self.fruit_fall_speed
         self.player_speed = 0.25 * self.player_speed
-        print('Setting delay in arrow to: {}'.format(delay))
         self.delay = delay
 
     def init(self):
@@ -84,6 +89,39 @@ class Arrow(Catcher):
                 self.width, self.height, self.rng)
 
         self.fruit.reset()
+
+    def step(self, dt):
+        """
+        don't update player/fruit after a reset
+        otherwise we get one time step of fruit in
+        another location at end of every episode
+        """
+        self.screen.fill((0,0,0))
+        self._handle_player_events()
+
+        self.score += self.rewards["tick"]
+        done = False
+
+        if self.fruit.rect.center[1] >= self.height:
+            done = True #added
+            self.score += self.rewards["negative"]
+            self.lives -= 1
+            self.fruit.reset()
+
+        if pygame.sprite.collide_rect(self.player, self.fruit):
+            done = True #added
+            self.score += self.rewards["positive"]
+            self.fruit.reset()
+
+        if not done: # added
+            self.player.update(self.dx, dt)
+            self.fruit.update(dt)
+
+        if self.lives == 0:
+            self.score += self.rewards["loss"]
+
+        self.player.draw(self.screen)
+        self.fruit.draw(self.screen)
 
     def getGameState(self):
         """
@@ -107,7 +145,6 @@ class Arrow(Catcher):
         """
         if self.fruit.timestep < self.fruit.delay:
             # fruit is not visible, just return random reward
-            import pdb; pdb.set_trace()
             return np.random.randint(1, 37)
         else:
             fruit_x, _, _, _ = self.fruit.get_state()
