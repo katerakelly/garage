@@ -268,7 +268,7 @@ class InverseMI(Predictor):
         # also break out accuracy per action
         pred_actions = pred_actions.detach().cpu().numpy()
         actions = actions.cpu().numpy()
-        action_vals = list(range(3))
+        action_vals = list(range(self._action_dim))
         accs = compute_perclass_accuracy(pred_actions, actions, action_vals)
         d = dict([(f'accuracy_{val}', acc) for val, acc in zip(action_vals, accs)])
         eval_dict.update(d)
@@ -347,7 +347,7 @@ class StateDecoder(Predictor):
         agent_mse = F.mse_loss(pred_state[..., :2].flatten(), state[..., :2].flatten())
         fruit_mse = F.mse_loss(pred_state[..., 2:4].flatten(), state[..., 2:4].flatten())
         stats = {'AgentMSE': agent_mse.item(), 'FruitMSE': fruit_mse.item()}
-        if self._action_dim > 3:
+        if self._action_dim >3:
             gripper_mse = F.mse_loss(pred_state[..., -1].flatten(), state[..., -1].flatten())
             stats.update({'GripperMSE': gripper_mse.item()})
         return stats
