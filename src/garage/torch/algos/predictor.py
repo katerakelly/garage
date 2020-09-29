@@ -298,11 +298,11 @@ class RewardDecoder(Predictor):
         return {'MSELoss': loss}, {}
 
     def evaluate(self, samples_data):
-        obs = samples_data['observation']
+        obs = samples_data['next_observation']
         reward = samples_data['reward']
         pred = self.forward([obs])
-        loss = F.mse_loss(pred.flatten(), reward.flatten())
-        eval_dict = {'RewardMSE': loss.item()}
+        error = torch.sqrt(F.mse_loss(pred.flatten(), reward.flatten()))
+        eval_dict = {'RewardError': error.item()}
         return eval_dict
 
 
@@ -334,6 +334,9 @@ class StateDecoder(Predictor):
         if self._action_dim > 3:
             gripper_mse = F.mse_loss(pred_state[..., -1].flatten(), state[..., -1].flatten())
             stats.update({'GripperMSE': gripper_mse.item()})
+        if target.shape[-1] > 5:
+            arrow_mse = F.mse_loss(pred_state[..., -2:].flatten(), state[..., -2:].flatten())
+            stats.update({'ArrowMSE': arrow_mse.item()})
         return stats
 
 
