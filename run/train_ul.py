@@ -98,6 +98,13 @@ def main(config, name, gpu, debug, overwrite):
                                         hidden_nonlinearity=nn.ReLU)
                 predictors = {'InverseMI': InverseMI(cnn_encoder, action_mlp, action_dim=action_dim, discrete=discrete, information_bottleneck=variant['ib']), 'RewardDecode': RewardDecoder(cnn_encoder, reward_mlp, action_dim=action_dim)}
                 loss_weights = {'InverseMI': 1.0, 'RewardDecode': 10.0}
+        elif algo == 'reward':
+            reward_mlp = MLPModule(input_dim=obs_dim,
+                                    output_dim=1,
+                                    hidden_sizes=hidden_sizes,
+                                    hidden_nonlinearity=nn.ReLU)
+            predictors = {'RewardDecode': RewardDecoder(cnn_encoder, reward_mlp, action_dim=action_dim)}
+
         elif algo == 'cpc':
             predictors = {'CPC': CPC(cnn_encoder, action_dim=action_dim)}
             momentum = 0.0
