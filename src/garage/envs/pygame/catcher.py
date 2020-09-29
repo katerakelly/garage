@@ -120,6 +120,12 @@ class PygameArrowShortEnv(PygameVariationShortEnv, Serializable):
         self.quick_init(locals())
         super().__init__('arrow', *args, **kwargs)
 
+    def get_ob_normalize(self, state):
+        # normalize arrow the same way as fruit
+        state_normal = super().get_ob_normalize(state)
+        state_normal[4] = (state_normal[2] - 26) / 26
+        state_normal[5] = (state_normal[3] - 20) / 45
+        return state_normal
 
     def step(self, action):
         ob, score, done, info = super().step(action)

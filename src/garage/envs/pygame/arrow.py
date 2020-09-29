@@ -52,14 +52,11 @@ class ArrowFruit(Fruit):
             screen.blit(self.image, self.rect.center)
 
     def get_state(self):
+        """ return position of what is currently visualized, zeros for other """
         if self.timestep < self.delay:
-            # return state of the arrow
-            return self.arrow_rect.center[0], self.arrow_rect.center[1]
-            # TODO remove
-            #return 0, 0
+            return 0, 0, self.arrow_rect.center[0], self.arrow_rect.center[1]
         else:
-            # return state of fruit
-            return self.rect.center[0], self.rect.center[1]
+            return self.rect.center[0], self.rect.center[1], 0, 0
 
 
 class Arrow(Catcher):
@@ -92,12 +89,14 @@ class Arrow(Catcher):
         """
         add position of arrow to state
         """
-        fruit_x, fruit_y = self.fruit.get_state()
+        fruit_x, fruit_y, arrow_x, arrow_y = self.fruit.get_state()
         state = {
             "player_x": self.player.rect.center[0],
             "player_vel": self.player.vel,
             "fruit_x": fruit_x,
             "fruit_y": fruit_y,
+            "arrow_x": arrow_x,
+            "arrow_y": arrow_y
         }
 
         return state
@@ -107,9 +106,10 @@ class Arrow(Catcher):
         return x-distance from agent to fruit
         """
         if self.fruit.timestep < self.fruit.delay:
-            # fruit is not visible, just return max distance
-            return 36
+            # fruit is not visible, just return random reward
+            import pdb; pdb.set_trace()
+            return np.random.randint(1, 37)
         else:
-            fruit_x, _ = self.fruit.get_state()
+            fruit_x, _, _, _ = self.fruit.get_state()
             player_x = self.player.rect.center[0]
             return np.abs(player_x - fruit_x)
