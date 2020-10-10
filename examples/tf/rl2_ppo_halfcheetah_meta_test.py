@@ -6,8 +6,8 @@ import click
 from garage import wrap_experiment
 from garage.envs.garage_env import GarageEnv
 from garage.envs.meld import HalfCheetahVelEnv as MeldHalfCheetahVelEnv
-from garage.envs.meld import SawyerReachingEnvMultitask, SawyerPegInsertionEnv4Box, SawyerPegShelfEnvMultitask
-from garage.envs.meld import MeldCheetahWrapper, MeldReachingWrapper, MeldPegWrapper, MeldShelfWrapper
+from garage.envs.meld import SawyerReachingEnvMultitask, SawyerPegInsertionEnv4Box, SawyerPegShelfEnvMultitask, SawyerButtonsEnv
+from garage.envs.meld import MeldCheetahWrapper, MeldReachingWrapper, MeldPegWrapper, MeldShelfWrapper, MeldButtonWrapper
 from garage.experiment import LocalTFRunner
 from garage.experiment import task_sampler
 from garage.experiment.experiment import ExperimentContext
@@ -25,7 +25,7 @@ from garage.tf.policies import GaussianGRUPolicy
 # reacher: path_length: 40, train_tasks: 60, eval_tasks: 10
 # peg: path_length: 40, train_tasks: 30, eval_tasks: 10
 # shelf: path_length: 40, train_tasks: 40, eval_tasks: 10
-
+# button 2 traj/trial: path_legnth: 40, train_tasks: 15, eval_tasks: 12
 
 @click.command()
 @click.option('--seed', default=1)
@@ -65,6 +65,8 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
             env = GarageEnv(MeldPegWrapper(SawyerPegInsertionEnv4Box(), image_obs=True), is_image=False)
         elif env == 'shelf':
             env = GarageEnv(MeldShelfWrapper(SawyerPegShelfEnvMultitask(), image_obs=True), is_image=False)
+        elif env == 'button':
+            env = GarageEnv(MeldButtonWrapper(SawyerButtonsEnv(), image_obs=True), is_image=False)
         tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
             env=env))
         test_tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
@@ -81,7 +83,7 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
                                        n_exploration_traj=num_eval_exp_traj,
                                        n_test_rollouts=num_eval_test_traj,
                                        max_path_length=max_path_length,
-                                       n_test_tasks=10)
+                                       n_test_tasks=12)
 
         algo = RL2PPO(rl2_max_path_length=max_path_length,
                       meta_batch_size=meta_batch_size,

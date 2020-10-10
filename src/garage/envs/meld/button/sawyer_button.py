@@ -138,15 +138,25 @@ class SawyerButtonsEnv(SawyerReachingEnv):
         y_high = 0.0
         z_low = z_high = -0.15
 
-        assert num_tasks % 3 == 0
-
-        possible_goals = []
-        for task_id in range(num_tasks // 3):
+        def get_random_pos():
             x = np.random.uniform(x_low, x_high)
             y = np.random.uniform(y_low, y_high)
             z = np.random.uniform(z_low, z_high)
-            for button_idx in range(3):
-                possible_goals.append([button_idx, x, y, z])
+            return x, y, z
+
+        possible_goals = []
+        if num_tasks == 1:
+            x, y, z = get_random_pos()
+            button_idx = np.random.randint(3)
+            possible_goals.append([button_idx, x, y, z])
+
+        else:
+            assert num_tasks % 3 == 0
+
+            for task_id in range(num_tasks // 3):
+                x, y, z = get_random_pos()
+                for button_idx in range(3):
+                    possible_goals.append([button_idx, x, y, z])
 
         return possible_goals
 
@@ -159,7 +169,7 @@ class SawyerButtonsEnv(SawyerReachingEnv):
         '''
 
         # set which box is the correct one
-        self.which_button = goal[0]
+        self.which_button = int(goal[0])
 
         # set the location of the panel
         self.model.body_pos[self.body_id_panel] = goal[1:]

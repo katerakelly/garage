@@ -22,7 +22,7 @@ class MeldSawyerWrapper(gym.Wrapper):
 
         # training tasks
         self._task = task
-        self.num_train_tasks = 20
+        self.num_train_tasks = 15
         # NOTE this hack is needed for shelf env to instantiate correctly
         dummy_task = self.sample_tasks(1)[0]
         self.set_task(dummy_task)
@@ -144,6 +144,39 @@ class MeldReachingWrapper(MeldSawyerWrapper):
             width=width / 2,
             height=height,
             camera_name='track_aux_reach',
+        )
+        ee_img = np.flipud(ee_img)
+        scene_img = self.env.sim.render(
+            width=width / 2,
+            height=height,
+            camera_name='track',
+        )
+        scene_img = np.flipud(scene_img)
+        img = np.concatenate([scene_img, ee_img], axis=1)
+        assert img.shape == (width, height, 3)
+        if is_vis:
+            self.env.goal_visibility(visible=False)
+        return img
+
+
+class MeldButtonWrapper(MeldSawyerWrapper):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.num_train_tasks = 15
+
+    def get_image(self, width=64, height=64, camera_name='track'):
+        # use sim.render to avoid MJViewer which doesn't seem to work without display
+        is_vis = width >= 128
+        if is_vis:
+            self.env.goal_visibility(visible=True)
+
+        # by rendering at half width, images will be center cropped
+        # manual inspection determines this is ok for reacher
+        ee_img = self.env.sim.render(
+            width=width / 2,
+            height=height,
+            camera_name='track_aux_insert',
         )
         ee_img = np.flipud(ee_img)
         scene_img = self.env.sim.render(

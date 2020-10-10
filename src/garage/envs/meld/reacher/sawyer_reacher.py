@@ -46,10 +46,11 @@ class SawyerReachingEnv(mujoco_env.MujocoEnv):
         self.is_eval_env = False
 
         # Sparse reward setting
-        self.truncation_dist = 0.3 # Tony: 0.3 is probably too big
+        self.truncation_dist = 0.15 # Tony: 0.3 is probably too big
         # if distance from goal larger than this,
         # get dist(self.truncation_dis) reward every time steps.
         # The dist is around 1 in starting pos
+        self.sparse_margin = 1
 
         # create the env
         self.startup = True
@@ -109,7 +110,8 @@ class SawyerReachingEnv(mujoco_env.MujocoEnv):
 
     def _get_ee_pose(self):
         ''' ee pose is xyz position + orientation quaternion '''
-        return self.data.body_xpos[self.body_id_ee].copy()
+        # return self.data.body_xpos[self.body_id_ee].copy()
+        return self.data.site_xpos[self.site_id_ee].copy()
 
     def reset_model(self):
 
@@ -178,7 +180,7 @@ class SawyerReachingEnv(mujoco_env.MujocoEnv):
 
         return feasible_position
 
-    def compute_reward(self, get_score=False, goal_id_override=None):
+    def compute_reward(self, get_score=False, goal_id_override=None, button=None):
 
         # get goal id
         if goal_id_override is None:
@@ -193,18 +195,38 @@ class SawyerReachingEnv(mujoco_env.MujocoEnv):
         # score
         score = -np.linalg.norm(ee_xyz - goal_xyz)
 
-        # distance
+        ### DISTANCE
         dist = 5*np.linalg.norm(ee_xyz - goal_xyz)
-        sparse_dist = min(dist, self.truncation_dist) # if dist too large: return the reward at truncate_dist
 
-        # dense reward
-        # use GPS cost function: log + quadratic encourages precision near insertion
-        reward = -(dist ** 2 + math.log10(dist ** 2 + 1e-5)) - (-(self.truncation_dist ** 2 + math.log10(self.truncation_dist ** 2 + 1e-5)))
+        ### RE-WEIGHTED DISTANCE
+        # dist_vec = np.array(ee_xyz - goal_xyz)
+        # assert dist_vec.shape == (3,)
+        # weight_vec = np.array([1, 1.5, 0.5]) # the second entry is left-right
+        # dist_vec = dist_vec * weight_vec
+        # dist = 5 * np.linalg.norm(dist_vec)
 
-        # sparse reward
-        # offset the whole reward such that when dist>truncation_dist, the reward will be exactly 0
-        sparse_reward = -(sparse_dist ** 2 + math.log10(sparse_dist ** 2 + 1e-5))
-        sparse_reward = sparse_reward - (-(self.truncation_dist ** 2 + math.log10(self.truncation_dist ** 2 + 1e-5)))
+        ### JOINT DISTANCE
+        # all_target_joints = [
+        #     np.array([0.122, -0.245, 3.01356e-08, 1.12628, -2.53213e-08, 0.625, -8.8005e-11]), # red
+        #     np.array([-0.09, -0.245, 3.01356e-08, 1.12628, -2.53213e-08, 0.625, -8.8005e-11]), # green
+        #     np.array([-0.274, -0.245, 3.01356e-08, 1.12628, -2.53213e-08, 0.625, -8.8005e-11]), # blue
+        # ] # TODO these are the same even though technically different panel position needs different target joint goals. This is just to quickly test out if it is going to make learning faster
+        # if button is None:
+        #     print("WARNING!! NO BUTTON")
+        #     button = 0
+        # target_joint = all_target_joints[button]
+        # curr_joint = np.array(self._get_joint_angles())
+        # dist = np.linalg.norm(target_joint-curr_joint, ord=1) # TODO try different norms
+
+
+        offset =  - (-(self.truncation_dist ** 2 + math.log10(self.truncation_dist ** 2 + 1e-5)))
+        reward =  -(dist ** 2 + math.log10(dist ** 2 + 1e-5)) + offset
+
+        if dist < self.truncation_dist:
+            sparse_reward = reward + self.sparse_margin # create a gap of 1
+        else:
+            sparse_reward = 0
+
 
         if get_score:
             return reward, score, sparse_reward
