@@ -36,10 +36,11 @@ from garage.tf.policies import GaussianGRUPolicy
 @click.option('--num_eval_exp_traj', default=1)
 @click.option('--num_eval_test_traj', default=1)
 @click.option('--env', default='cheetah')
+@click.option('--sparse', is_flag=True)
 @click.option('--gpu', default=0)
 @wrap_experiment(prefix='rl2-ppo-image', archive_launch_repo=False)
 def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
-        n_epochs, episode_per_task, num_eval_exp_traj, num_eval_test_traj, env, gpu):
+        n_epochs, episode_per_task, num_eval_exp_traj, num_eval_test_traj, env, sparse, gpu):
     """Perform meta-testing on RL2PPO with HalfCheetah environment.
 
     Args:
@@ -66,7 +67,7 @@ def rl2_ppo_halfcheetah_meta_test(ctxt, seed, max_path_length, meta_batch_size,
         elif env == 'shelf':
             env = GarageEnv(MeldShelfWrapper(SawyerPegShelfEnvMultitask(), image_obs=True), is_image=False)
         elif env == 'button':
-            env = GarageEnv(MeldButtonWrapper(SawyerButtonsEnv(), image_obs=True), is_image=False)
+            env = GarageEnv(MeldButtonWrapper(SawyerButtonsEnv(sparse_reward=sparse), image_obs=True), is_image=False)
         tasks = task_sampler.SetTaskSampler(lambda: RL2Env(
             env=env))
         test_tasks = task_sampler.SetTaskSampler(lambda: RL2Env(

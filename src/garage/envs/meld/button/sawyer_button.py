@@ -21,7 +21,10 @@ class SawyerButtonsEnv(SawyerReachingEnv):
     This env is a multi-task env. The reward always gets concatenated to obs.
     '''
 
-    def __init__(self, xml_path=None, goal_site_name=None, action_mode='joint_delta_position', *args, **kwargs):
+    def __init__(self, sparse_reward=False, xml_path=None, goal_site_name=None, action_mode='joint_delta_position', *args, **kwargs):
+
+        # controls which reward is returned from step()
+        self.sparse_reward = sparse_reward
 
         if xml_path is None:
             xml_path = os.path.join(SCRIPT_DIR, 'assets/sawyer_buttons.xml')
@@ -100,7 +103,10 @@ class SawyerButtonsEnv(SawyerReachingEnv):
         # append reward to obs
         obs = np.concatenate((obs, np.array([sparse_reward]), np.array([reward])))
 
-        return obs, reward, done, info
+        if self.sparse_reward:
+            return obs, sparse_reward, done, info
+        else:
+            return obs, reward, done, info
 
     def goal_visibility(self, visible):
 
