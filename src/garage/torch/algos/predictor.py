@@ -173,6 +173,107 @@ class ForwardMI(CPC):
         return [obs, next_obs, actions]
 
 
+class Bisimulation(Predictor):
+    """
+    maximize I(R; Z) - H(Z'; Z, A)
+    """
+    def __init__(self, cnn_encoder, head, action_dim, information_bottleneck=True, kl_weight=1.0, **kwargs):
+        super().__init__(cnn_encoder, head, **kwargs)
+        self._information_bottleneck = information_bottleneck
+        self._kl_weight = kl_weight
+        self._loss = F.mse_loss
+
+        # latent dynamics model: z, a -> z'
+        latent_dim = self.cnn_encoder.output_dim // 2
+        self.dynamics = MLPModule(input_dim=latent_dim + action_dim,
+                                  output_dim=latent_dim*2,
+                                  hidden_sizes=[256, 256],
+                                  hidden_nonlinearity=nn.ReLU)
+
+    def get_trainable_params(self):
+        return list(self.parameters())
+
+    def compute_loss(self, samples_data):
+        obs = samples_data['observation']
+        next_obs = samples_data['next_observation']
+        actions = samples_data['action']
+        rewards = samples_data['reward']
+
+        if self.cnn_encoder is not None:
+            obs_feat = self.cnn_encoder(obs)
+            next_obs_feat = self.cnn_encoder(next_obs)
+        else:
+            obs_feat = obs
+            next_obs_feat = next_obs
+
+        # compute Z_t and Z_{t+1} posteriors
+        d = self.cnn_encoder.output_dim // 2
+        curr_posteriors = [torch.distributions.Normal(params[:d], torch.sqrt(F.softplus(params[d:]))) for params in torch.unbind(obs_feat)]
+        next_posteriors = [torch.distributions.Normal(params[:d], torch.sqrt(F.softplus(params[d:]))) for params in torch.unbind(next_obs_feat)]
+
+        # sample from current posterior
+        curr_samples = torch.stack([post.rsample() for post in curr_posteriors])
+
+        ### Loss
+        # decode rewards from samples, compute loss
+        curr_reward_pred = self.head(curr_samples)
+        curr_reward_loss = self._loss(curr_reward_pred, rewards)
+
+        # predict next state from current state and action
+        # compute KL divergence
+        next_feat_pred = self.dynamics(torch.cat([curr_samples, actions], dim=-1))
+        pred_next_posteriors = [torch.distributions.Normal(params[:d], torch.sqrt(F.softplus(params[d:]))) for params in torch.unbind(next_feat_pred)]
+        dynamics_kl_divs = [torch.distributions.kl.kl_divergence(pred_next_post, next_post) for pred_next_post, next_post in zip(pred_next_posteriors, next_posteriors)]
+        dynamics_kl_div_sum = torch.mean(torch.stack(dynamics_kl_divs))
+
+        # optionally compute IB on Z
+        if self._information_bottleneck:
+            prior = torch.distributions.Normal(
+                torch.zeros(d).to(global_device()),
+                torch.ones(d).to(global_device()))
+            kl_div_sum = 0
+            for posteriors in [curr_posteriors, next_posteriors]:
+                kl_divs = [torch.distributions.kl.kl_divergence(post, prior) for post in posteriors]
+                kl_div_sum += torch.mean(torch.stack(kl_divs))
+
+        # logging
+        z_mean, z_std = [], []
+        for posteriors in [curr_posteriors, next_posteriors]:
+            # get mean and std of posteriors for logging
+            z_mean.append(torch.stack([torch.abs(post.mean) for post in posteriors]).mean())
+            z_std.append(torch.stack([post.stddev for post in posteriors]).mean())
+        z_mean = torch.mean(torch.stack(z_mean)).item()
+        z_std = torch.mean(torch.stack(z_std)).item()
+
+
+        losses = {'RewardMSE': curr_reward_loss, 'DynamicsKL': dynamics_kl_div_sum}
+        metrics = {'ZMean': z_mean, 'ZStd': z_std}
+
+        if self._information_bottleneck:
+            losses.update({'KL': kl_div_sum * self._kl_weight})
+
+        return losses, metrics
+
+    def evaluate(self, samples_data):
+        """ return dict of (stat name, value) """
+        obs = samples_data['observation']
+        rewards = samples_data['reward']
+
+        # NOTE that evaluation here is deterministic!
+        # TODO should evaluate reward prediction of *next* state too
+        # need to add this to replay buffer somehow
+        if self.cnn_encoder is not None:
+            obs_feat = self.cnn_encoder(obs)
+        else:
+            obs_feat = obs
+        d = self.cnn_encoder.output_dim // 2
+        reward_pred = self.head(obs_feat[..., :d])
+        reward_mse = self._loss(reward_pred, rewards).detach()
+        eval_dict = {'RewardMSE': reward_mse.item()}
+
+        return eval_dict
+
+
 class InverseMI(Predictor):
     """
     UL algorithm that trains an inverse model p(a | o_t, o_t+1)

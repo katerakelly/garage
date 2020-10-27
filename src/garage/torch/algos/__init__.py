@@ -18,9 +18,9 @@ from garage.torch.algos.mtsac import MTSAC
 from garage.torch.algos.pearl import PEARL
 from garage.torch.algos.collect import DataCollector
 from garage.torch.algos.ul import ULAlgorithm
-from garage.torch.algos.predictor import InverseMI, StateDecoder, RewardDecoder, CPC, ForwardMI
+from garage.torch.algos.predictor import InverseMI, StateDecoder, RewardDecoder, CPC, ForwardMI, Bisimulation
 
 __all__ = [
     'BC', 'DDPG', 'VPG', 'PPO', 'TRPO', 'MAMLPPO', 'MAMLTRPO', 'MAMLVPG',
-    'MTSAC', 'PEARL', 'SAC', 'DiscreteSAC', 'DataCollector', 'ULAlgorithm', 'InverseMI', 'RewardDecoder', 'StateDecoder', 'CPC', 'ForwardMI',
+    'MTSAC', 'PEARL', 'SAC', 'DiscreteSAC', 'DataCollector', 'ULAlgorithm', 'InverseMI', 'RewardDecoder', 'StateDecoder', 'CPC', 'ForwardMI', 'Bisimulation',
 ]

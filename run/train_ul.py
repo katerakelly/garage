@@ -16,7 +16,7 @@ from garage.replay_buffer import PathBuffer
 from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
 from garage.torch.modules import CNNEncoder
-from garage.torch.algos import InverseMI, ULAlgorithm, CPC, RewardDecoder, ForwardMI, StateDecoder
+from garage.torch.algos import InverseMI, ULAlgorithm, CPC, RewardDecoder, ForwardMI, StateDecoder, Bisimulation
 from garage.torch.modules import GaussianMLPTwoHeadedModule, MLPModule
 from garage.misc.exp_util import make_env, make_exp_name
 
@@ -106,6 +106,13 @@ def main(config, name, gpu, debug, overwrite):
             predictors = {'ForwardMI': ForwardMI(cnn_encoder, action_dim=action_dim)}
             #momentum = 0.0
             snapshot_metric = ['ForwardMI', 'CELoss']
+        elif algo == 'bisim':
+            obs_dim = obs_dim // 2
+            reward_mlp = MLPModule(input_dim=obs_dim,
+                                   output_dim=1,
+                                   hidden_sizes=hidden_sizes,
+                                   hidden_nonlinearity=nn.ReLU)
+            predictors = {'Bisimulation': Bisimulation(cnn_encoder, reward_mlp, action_dim, information_bottleneck=variant['ib'], kl_weight=variant['klw'])}
         elif algo == 'state-decode':
             output_dim = 5 if 'gripper' in env_name else 4
             state_mlp = MLPModule(input_dim=obs_dim,
