@@ -5,31 +5,37 @@ import gym
 from gym import spaces
 from ple import PLE
 
-from garage.envs.pygame.base import BaseEnv, ModifiedBaseEnv
+from garage.envs.pygame.base import BaseEnv
+from garage.envs.pygame.gripper import Gripper
 from garage.envs.serializable import Serializable
 
 
-class CatcherEnv(BaseEnv):
-  def __init__(self, normalize=True, display=False, **kwargs):
-    self.game_name = 'Catcher'
-    self.init(normalize, display, **kwargs)
+class PyGameEnv(BaseEnv):
+    ''' methods common to all game variations '''
 
-  def get_ob_normalize(self, state):
-    state_normal = self.get_ob(state)
-    state_normal[0] = (state_normal[0] - 26) / 26
-    state_normal[1] = (state_normal[1]) / 8
-    state_normal[2] = (state_normal[2] - 26) / 26
-    state_normal[3] = (state_normal[3] - 20) / 45
-    return state_normal
+    def get_ob_normalize(self, state):
+        state_normal = self.get_ob(state)
+        state_normal[0] = (state_normal[0] - 26) / 26
+        state_normal[1] = (state_normal[1]) / 8
+        state_normal[2] = (state_normal[2] - 26) / 26
+        state_normal[3] = (state_normal[3] - 20) / 45
+        return state_normal
+
+    def render(self, mode='rgb_array', **kwargs):
+        # don't pass other keyword args which are not supported
+        return super().render(mode=mode)
 
 
-class PygameCatcherEnv(CatcherEnv, Serializable):
+
+class PygameCatcherEnv(PyGameEnv, Serializable):
     """
-    stub wrapper for pygame environments
+    Original Catcher game
+    multiple opportunities to catch fruit per episode
     """
 
-    def __init__(self, discrete, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, discrete, normalize=True, display=False, *args, **kwargs):
+        self.game_name = 'Catcher'
+        self.init(normalize, display, **kwargs)
         self.quick_init(locals())
         self.discrete = discrete
         if not self.discrete:
@@ -49,10 +55,6 @@ class PygameCatcherEnv(CatcherEnv, Serializable):
             action = np.argmax(action)
         return super().step(action)
 
-    def render(self, mode='rgb_array', **kwargs):
-        # don't pass other keyword args which are not supported
-        return super().render(mode=mode)
-
 
 class PygameCatcherShortEnv(PygameCatcherEnv, Serializable):
     """
@@ -70,10 +72,31 @@ class PygameCatcherShortEnv(PygameCatcherEnv, Serializable):
         return ob, reward, done, info
 
 
-class PygameGripperShortEnv(ModifiedBaseEnv, Serializable):
+class PygameCatcherDenseEnv(PygameCatcherEnv, Serializable):
+    """
+    catcher game modified to have dense rewards
+    """
+    def __init__(self, discrete, *args, **kwargs):
+        super().__init__(discrete, *args, **kwargs)
+        self.quick_init(locals())
+
+    def step(self, action):
+        ob, reward, done, info = super().step(action)
+        dense_reward = self.distance2fruit()
+        return ob, dense_reward, done, info
+
+    def distance2fruit(self):
+        """
+        return x-distance from agent to fruit
+        """
+        fruit_x = self.game.fruit.rect.center[0]
+        player_x = self.game.player.rect.center[0]
+        return np.abs(player_x - fruit_x)
+
+
+class PygameGripperShortEnv(PyGameEnv, Serializable):
     """
     modified catcher game to have a gripper on the agent
-    also combines all the modifications of above envs
     """
     def __init__(self, discrete, normalize=True, display=False, **kwargs):
         self.game_name = 'Gripper'
@@ -82,6 +105,9 @@ class PygameGripperShortEnv(ModifiedBaseEnv, Serializable):
         self.discrete = discrete
         if not self.discrete:
             self.action_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
+
+    def get_game(self):
+        return Gripper()
 
     def step(self, action):
         # convert cont. action to discrete
@@ -96,14 +122,3 @@ class PygameGripperShortEnv(ModifiedBaseEnv, Serializable):
         done = reward != 0
         return ob, reward, done, info
 
-    def render(self, mode='rgb_array', **kwargs):
-        # don't pass other keyword args which are not supported
-        return super().render(mode=mode)
-
-    def get_ob_normalize(self, state):
-        state_normal = self.get_ob(state)
-        state_normal[0] = (state_normal[0] - 26) / 26
-        state_normal[1] = (state_normal[1]) / 8
-        state_normal[2] = (state_normal[2] - 26) / 26
-        state_normal[3] = (state_normal[3] - 20) / 45
-        return state_normal

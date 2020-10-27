@@ -4,7 +4,6 @@ import numpy as np
 import gym
 from gym import spaces
 from ple import PLE
-from garage.envs.pygame.gripper import Gripper
 
 
 class BaseEnv(gym.Env):
@@ -15,10 +14,7 @@ class BaseEnv(gym.Env):
     self.init(normalize, display, **kwargs)
 
   def init(self, normalize, display, **kwargs):
-    game_module_name = f'ple.games.{self.game_name.lower()}'
-    game_module = importlib.import_module(game_module_name)
-    self.game = getattr(game_module, self.game_name)(**kwargs)
-
+    self.game = self.get_game(**kwargs)
     if display == False:
       # Do not open a PyGame window
       os.putenv('SDL_VIDEODRIVER', 'fbcon')
@@ -34,6 +30,12 @@ class BaseEnv(gym.Env):
     self.action_space = spaces.Discrete(len(self.action_set))
     self.observation_space = spaces.Box(-np.inf, np.inf, shape=(len(self.game.getGameState()),), dtype=np.float32)
     self.gameOb.init()
+
+  def get_game(self, **kwargs):
+    ''' create game specified by the game name '''
+    game_module_name = f'ple.games.{self.game_name.lower()}'
+    game_module = importlib.import_module(game_module_name)
+    return getattr(game_module, self.game_name)(**kwargs)
 
   def get_ob(self, state):
     return np.array(list(state.values()))
@@ -72,28 +74,3 @@ class BaseEnv(gym.Env):
       self.viewer.close()
       self.viewer = None
     return 0
-
-
-class ModifiedBaseEnv(BaseEnv):
-  ''' modify init() to create custom ple env '''
-  def init(self, normalize, display, **kwargs):
-    # NOTE making custom gripper env here
-    self.game = Gripper(**kwargs)
-
-    if display == False:
-      # Do not open a PyGame window
-      os.putenv('SDL_VIDEODRIVER', 'fbcon')
-      os.environ['SDL_VIDEODRIVER'] = 'dummy'
-
-    if normalize:
-        self.gameOb = PLE(self.game, fps=30, state_preprocessor=self.get_ob_normalize, display_screen=display)
-    else:
-        self.gameOb = PLE(self.game, fps=30, state_preprocessor=self.get_ob, display_screen=display)
-
-    self.viewer = None
-    self.action_set = self.gameOb.getActionSet()
-    self.action_space = spaces.Discrete(len(self.action_set))
-    self.observation_space = spaces.Box(-np.inf, np.inf, shape=(len(self.game.getGameState()),), dtype=np.float32)
-    self.gameOb.init()
-
-
