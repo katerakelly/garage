@@ -198,7 +198,6 @@ class InverseMI(Predictor):
         next_obs = samples_data['next_observation']
         actions = samples_data['action']
 
-        pred_actions = self.forward([obs, next_obs])
         if self.cnn_encoder is not None:
             obs_feat = self.cnn_encoder(obs)
             next_obs_feat = self.cnn_encoder(next_obs)
@@ -259,6 +258,8 @@ class InverseMI(Predictor):
 
         if not self._discrete:
             raise NotImplementedError
+
+        # NOTE that evaluation here is deterministic!
         pred_actions = torch.argmax(self.forward([obs, next_obs]), dim=-1)
         actions = torch.argmax(actions, dim=-1) # convert 1-hot to scalar
         eval_dict = {}
