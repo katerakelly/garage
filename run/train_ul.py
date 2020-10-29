@@ -56,7 +56,8 @@ def main(config, name, gpu, debug, overwrite):
 
         # make the env, given name and whether to use image obs
         env_name = variant['env']
-        env = make_env(env_name, image, discrete=discrete)
+        bg = variant['bg'] if 'bg' in variant else None
+        env = make_env(env_name, image, bg=bg, discrete=discrete)
 
         # make cnn encoder if learning from images
         cnn_encoder = None

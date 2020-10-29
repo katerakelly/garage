@@ -49,7 +49,7 @@ def main(config, name, gpu, debug, overwrite):
 
         # make the env, given name and whether to use image obs
         image = variant['image']
-        env = make_env(variant['env'], image, discrete=variant['discrete'])
+        env = make_env(variant['env'], image, bg=variant['bg'], discrete=variant['discrete'])
         action_dim = env.spec.action_space.flat_dim
 
         policy = variant['policy']
