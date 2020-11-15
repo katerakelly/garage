@@ -217,7 +217,7 @@ class Bisimulation(Predictor):
         ### Loss
         # decode rewards from samples, compute loss
         curr_reward_pred = self.head(curr_samples)
-        curr_reward_loss = self._loss(curr_reward_pred, rewards)
+        curr_reward_loss = self._loss(curr_reward_pred, rewards) * .01
 
         # predict next state from current state and action
         # compute KL divergence
