@@ -61,7 +61,7 @@ def main(config, name, gpu, debug, overwrite):
             policies = [random_policy, static_policy]
         elif policy == 'random-gripper':
             if 'gripper' not in variant['env']:
-                print('Cannot collect gripper data in non-gripper data')
+                print('Cannot collect gripper data in non-gripper env')
                 raise Exception
             random_policy = RandomPolicy(env_spec=env.spec)
             policies = [random_policy]
