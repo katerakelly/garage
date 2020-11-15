@@ -268,8 +268,10 @@ class Bisimulation(Predictor):
             obs_feat = obs
         d = self.cnn_encoder.output_dim // 2
         reward_pred = self.head(obs_feat[..., :d])
-        reward_mse = self._loss(reward_pred, rewards).detach()
-        eval_dict = {'RewardMSE': reward_mse.item()}
+        reward_mean_error = torch.mean(torch.abs(reward_pred - rewards)).detach()
+        reward_median_error = torch.median(torch.abs(reward_pred - rewards)).detach()
+        reward_max_error = torch.max(torch.abs(reward_pred - rewards)).detach()
+        eval_dict = {'RewardMeanError': reward_mean_error.item(), 'RewardMedianError': reward_median_error.item(), 'RewardMaxError': reward_max_error.item()}
 
         return eval_dict
 
