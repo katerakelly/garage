@@ -9,7 +9,7 @@ from garage.envs import GarageEnv, normalize
 from garage.envs.wrappers import Grayscale, Resize, StackFrames, PixelObservationWrapper
 from natural_rl_environment.natural_env import ReplaceBackgroundEnv
 from natural_rl_environment.matting import BackgroundMattingWithColor
-from natural_rl_environment.imgsource import RandomColorSource, RandomVideoSource
+from natural_rl_environment.imgsource import RandomColorSource, RandomVideoSource, RandomImageSource
 
 
 def make_env(env_name, is_image, bg=None, discrete=False, frame_stack=1):
@@ -35,9 +35,15 @@ def make_env(env_name, is_image, bg=None, discrete=False, frame_stack=1):
         env = PixelObservationWrapper(env)
         if bg == 'ideal_gas':
             print('Adding ideal gas distractors to background of images')
-            g = '/home/rakelly/garage/distractors/*.mp4'
+            g = '/home/rakelly/garage/distractors/videos/*.mp4'
             files = glob.glob(os.path.expanduser(g))
             imgsource = RandomVideoSource((64, 64), files)
+            env = ReplaceBackgroundEnv(env, BackgroundMattingWithColor((0, 0, 0)), imgsource)
+        elif bg == 'ideal_gas_random':
+            print('Adding independent random distractor image to background of all images')
+            g = '/home/rakelly/garage/distractors/images/*.png'
+            files = glob.glob(os.path.expanduser(g))
+            imgsource = RandomImageSource((64, 64), files)
             env = ReplaceBackgroundEnv(env, BackgroundMattingWithColor((0, 0, 0)), imgsource)
         env = Grayscale(env)
         env = Resize(env, 64, 64)
