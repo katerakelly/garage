@@ -98,7 +98,7 @@ class CPC(Predictor):
         if torch.isnan(obs).byte().any() or torch.isnan(next_obs).byte().any():
             print('an input is NaN')
             raise Exception
-        if (np.abs(obs) > 1).any() or (np.abs(next_obs) > 1).any():
+        if (torch.abs(obs) > 1).any() or (torch.abs(next_obs) > 1).any():
             print(obs)
             print(next_obs)
             raise Exception
