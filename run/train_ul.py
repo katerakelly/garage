@@ -25,12 +25,14 @@ from garage.misc.exp_util import make_env, make_exp_name
 @click.argument('config', default=None)
 @click.option('--name', default=None)
 @click.option('--gpu', default=0)
+@click.option('--seed', default=1)
 @click.option('--debug', is_flag=True)
 @click.option('--overwrite', is_flag=True)
-def main(config, name, gpu, debug, overwrite):
+def main(config, name, gpu, seed, debug, overwrite):
     with open(os.path.join(config)) as f:
         variant = json.load(f)
     variant['gpu'] = gpu
+    variant['seed'] = seed
     name = make_exp_name(name, debug)
     name = f'ul/{name}'
     if debug:
@@ -51,6 +53,7 @@ def main(config, name, gpu, debug, overwrite):
         discrete = variant['discrete']
         algo = variant['algo']
 
+        print('Setting seed = {}'.format(variant['seed']))
         deterministic.set_seed(variant['seed'])
         runner = LocalRunner(snapshot_config=ctxt)
 
