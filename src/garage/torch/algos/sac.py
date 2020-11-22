@@ -224,6 +224,9 @@ class SAC(RLAlgorithm):
             if self._save_policy and np.mean(last_return) > best_return:
                 print('Saving policy...')
                 runner.save_state_dict(self.policy, 'policy')
+                print('Saving Q-function...')
+                runner.save_state_dict(self._qf1, 'critic_1')
+                runner.save_state_dict(self._qf2, 'critic_2')
         if self._save_buffer:
             # save the replay buffer
             print('Saving replay buffer...')
