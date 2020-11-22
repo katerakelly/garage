@@ -91,6 +91,7 @@ class SAC(RLAlgorithm):
             policy,
             qf1,
             qf2,
+            target_qf,
             replay_buffer,
             *,  # Everything after this is numbers.
             max_path_length,
@@ -143,9 +144,7 @@ class SAC(RLAlgorithm):
         self.sampler_cls = RaySampler
 
         self._reward_scale = reward_scale
-        # use 2 target q networks
-        self._target_qf1 = copy.deepcopy(self._qf1)
-        self._target_qf2 = copy.deepcopy(self._qf2)
+        self._target_qf =  target_qf
 
         # Set up the optimizers, with special care for convnet!
         # NOTE never train CNN with policy gradients!!
@@ -255,7 +254,8 @@ class SAC(RLAlgorithm):
                 self._buffer_batch_size)
             samples = dict_np_to_torch(samples)
             policy_loss, qf1_loss, qf2_loss, policy_entropy = self.optimize_policy(samples)
-            self._update_targets()
+            # NOTE for Q*-regression, never update target
+            #self._update_targets()
 
         return policy_loss, qf1_loss, qf2_loss, policy_entropy
 
@@ -373,7 +373,7 @@ class SAC(RLAlgorithm):
             torch.Tensor: loss from 1st q-function after optimization.
             torch.Tensor: loss from 2nd q-function after optimization.
 
-        """
+c       """
         obs = samples_data['observation']
         actions = samples_data['action']
         rewards = samples_data['reward'].flatten()
@@ -391,10 +391,7 @@ class SAC(RLAlgorithm):
         new_log_pi = new_next_actions_dist.log_prob(
             value=new_next_actions, pre_tanh_value=new_next_actions_pre_tanh)
 
-        target_q_values = torch.min(
-            self._target_qf1(next_obs, new_next_actions),
-            self._target_qf2(
-                next_obs, new_next_actions)).flatten() - (alpha * new_log_pi)
+        target_q_values = torch.squeeze(self._target_qf(next_obs, new_next_actions))
         with torch.no_grad():
             q_target = rewards * self._reward_scale + (
                 1. - terminals) * self._discount * target_q_values
@@ -526,8 +523,7 @@ class SAC(RLAlgorithm):
 
         """
         return [
-            self.policy, self._qf1, self._qf2, self._target_qf1,
-            self._target_qf2
+            self.policy, self._qf1, self._qf2, self._target_qf,
         ]
 
     def to(self, device=None):

@@ -55,6 +55,9 @@ def main(config, name, gpu, debug, overwrite):
         policy = variant['policy']
         if policy == 'random':
             policies = [RandomPolicy(env_spec=env.spec)]
+        elif policy == 'static':
+            static_policy = StaticPolicy(env_spec=env.spec, action=action_dim-1)
+            policies = [static_policy]
         elif policy == 'random-static':
             random_policy = RandomPolicy(env_spec=env.spec)
             static_policy = StaticPolicy(env_spec=env.spec, action=action_dim-1)

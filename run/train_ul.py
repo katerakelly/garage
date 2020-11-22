@@ -16,8 +16,9 @@ from garage.replay_buffer import PathBuffer
 from garage.sampler import LocalSampler
 from garage.torch import set_gpu_mode
 from garage.torch.modules import CNNEncoder
-from garage.torch.algos import InverseMI, ULAlgorithm, CPC, RewardDecoder, ForwardMI, StateDecoder, Bisimulation
+from garage.torch.algos import InverseMI, ULAlgorithm, CPC, RewardDecoder, ForwardMI, StateDecoder, Bisimulation, CloneQ
 from garage.torch.modules import GaussianMLPTwoHeadedModule, MLPModule
+from garage.torch.q_functions import ContinuousMLPQFunction, CompositeQFunction, DiscreteMLPQFunction
 from garage.misc.exp_util import make_env, make_exp_name
 
 
@@ -85,7 +86,42 @@ def main(config, name, gpu, seed, debug, overwrite):
         loss_weights = None
         momentum = 0.9
         snapshot_metric = None
-        if 'inverse' in algo:
+        if 'predictQ' in algo:
+            # instantiate proxy for optimal Q
+            q_cnn_encoder = CNNEncoder(in_channels=1,
+                                        output_dim=256)
+            q_function = ContinuousMLPQFunction
+            qf_input_dim = obs_dim + env.spec.action_space.flat_dim
+            qf1_mlp = q_function(env_spec=env.spec,
+                                        input_dim=qf_input_dim,
+                                        hidden_sizes=[256, 256],
+                                        hidden_nonlinearity=F.relu)
+            qf1 = CompositeQFunction(q_cnn_encoder, qf1_mlp, input_action=True)
+            qf2_mlp = q_function(env_spec=env.spec,
+                                        input_dim=qf_input_dim,
+                                        hidden_sizes=[256, 256],
+                                        hidden_nonlinearity=F.relu)
+            qf2 = CompositeQFunction(q_cnn_encoder, qf2_mlp, input_action=True)
+            # load the pre-trained weights
+            pretrain = variant['pretrain_Q']
+            print('Loading pre-trained weights from {}...'.format(pretrain))
+            path_to_weights_1 = f'output/{env_name}/rl/{pretrain}/critic_1.pth'
+            qf1.load_state_dict(torch.load(path_to_weights_1))
+            path_to_weights_2 = f'output/{env_name}/rl/{pretrain}/critic_2.pth'
+            qf2.load_state_dict(torch.load(path_to_weights_2))
+            print('Success!')
+
+            # make predictor network with same architecture
+            # use CNN with pre-trained UL weights
+            q_predictor = ContinuousMLPQFunction
+            qf_mlp_predictor = q_function(env_spec=env.spec,
+                                        input_dim=qf_input_dim,
+                                        hidden_sizes=[256, 256],
+                                        hidden_nonlinearity=F.relu)
+            qf_predictor = CompositeQFunction(cnn_encoder, qf_mlp_predictor, input_action=True)
+            predictors = {'CloneQ': CloneQ(qf_predictor, [qf1, qf2], action_dim=action_dim, train_cnn=False)}
+
+        elif 'inverse' in algo:
             # make mlp to predict actions
             action_mlp = MLPModule(input_dim=obs_dim * 2,
                                     output_dim=action_dim,

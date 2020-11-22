@@ -456,4 +456,53 @@ class StateDecoder(Predictor):
             stats.update({'GripperMSE': gripper_mse.item()})
         return stats
 
+class CloneQ(nn.Module):
+    """
+    Predict optimal Q-values given expert Q-function
+    """
+    def __init__(self,
+                 predictor,
+                 expert_qs,
+                 action_dim=None,
+                 train_cnn=True):
+        super().__init__()
+        self.predictor = predictor
+        self.cnn_encoder = self.predictor._cnn_encoder
+        self.expert_qs = expert_qs
+        self._action_dim = action_dim
+        self._train_cnn = train_cnn
 
+    def get_trainable_params(self):
+        """ return parameters to be trained by optimizer """
+        if self._train_cnn:
+            return list(self.predictor.parameters())
+        else:
+            return list(self.predictor._mlp_q.parameters())
+
+    def compute_loss(self, samples_data):
+        obs = samples_data['observation']
+        actions = samples_data['action']
+        # convert to continuous actions
+        new_actions = torch.zeros(actions.shape[0]).to(global_device())
+        values = np.linspace(0, 1, actions.shape[1])
+        for idx, value in zip(range(actions.shape[1]), values):
+            indices = torch.where(actions[..., idx] == 1)
+            new_actions[indices] = value
+        new_actions = new_actions[..., None]
+
+        with torch.no_grad():
+            target = torch.min(*[q(obs, new_actions) for q in self.expert_qs]).flatten()
+
+        # compute the loss
+        pred = self.predictor.forward(obs, new_actions)
+        loss = F.mse_loss(pred.flatten(), target.flatten())
+
+        return {'MSELoss': loss}, {}
+
+    def evaluate(self, samples_data):
+        loss_dict, _ = self.compute_loss(samples_data)
+        return {'Error': np.sqrt(loss_dict['MSELoss'].detach().cpu())}
+
+    def to(self, device):
+        for net in [self.predictor] + self.expert_qs:
+            net.to(device)

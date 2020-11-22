@@ -122,12 +122,28 @@ def main(config, name, gpu, seed, debug, overwrite):
                                     hidden_nonlinearity=F.relu)
         qf2 = CompositeQFunction(cnn_encoder, qf2_mlp, input_action=input_action)
 
+        # make the target Q which is the expert Q to be cloned
+        target_cnn_encoder = CNNEncoder(in_channels=1,
+                                    output_dim=256)
+        target_mlp = q_function(env_spec=env.spec,
+                                    input_dim=qf_input_dim,
+                                    hidden_sizes=[256, 256],
+                                    hidden_nonlinearity=F.relu)
+        target_qf = CompositeQFunction(target_cnn_encoder, target_mlp, input_action=True)
+        # load the pre-trained weights
+        pretrain = variant['pretrain_Q']
+        print('Loading pre-trained weights from {}...'.format(pretrain))
+        path_to_weights_1 = f'output/{env_name}/rl/{pretrain}/critic_1.pth'
+        target_qf.load_state_dict(torch.load(path_to_weights_1))
+        print('Success!')
+
         replay_buffer = PathBuffer(capacity_in_transitions=int(1e6))
 
         sac = algo(env_spec=env.spec,
                 policy=policy,
                 qf1=qf1,
                 qf2=qf2,
+                target_qf=target_qf,
                 gradient_steps_per_itr=1000,
                 max_path_length=500,
                 replay_buffer=replay_buffer,
