@@ -17,6 +17,8 @@ from garage.torch import set_gpu_mode
 from garage.np.policies import RandomPolicy, StaticPolicy
 from garage.torch.algos import DataCollector
 from garage.misc.exp_util import make_env, make_exp_name
+from garage.torch.modules import CNNEncoder
+from garage.torch.policies import TanhGaussianMLPPolicy
 
 
 @click.command()
@@ -68,7 +70,28 @@ def main(config, name, gpu, debug, overwrite):
             for act in [4, 5]:
                 policies.append(StaticPolicy(env_spec=env.spec, action=act))
         else:
-            raise NotImplementedError
+            print('Making Gaussian policy...')
+            cnn_encoder = CNNEncoder(in_channels=1,
+                                        output_dim=256)
+            policy = TanhGaussianMLPPolicy(
+                env_spec=env.spec,
+                hidden_sizes=[256, 256],
+                hidden_nonlinearity=nn.ReLU,
+                output_nonlinearity=None,
+                min_std=np.exp(-20.),
+                max_std=np.exp(2.),
+                cnn_encoder=cnn_encoder,
+            )
+            print('Loading pre-trained weights...')
+            try:
+                env_name = variant['env']
+                pretrain = variant['pretrain']
+                path_to_weights = f'output/{env_name}/rl/{pretrain}/policy.pth'
+                policy.load_state_dict(torch.load(path_to_weights))
+                print('Success!')
+                policies = [policy]
+            except:
+                raise NotImplementedError
 
         # if collecting images, do not make this too large, or will get a memory error
         num_collect = int(5e4)
