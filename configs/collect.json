@@ -1,7 +1,9 @@
 {
     "env": "catcher-short",
-    "policy": "random-static",
+    "policy": "pretrain",
+    "pretrain": "rl_image_save_1",
     "image": true,
+    "bg": "none",
     "discrete": true,
     "seed": 1,
     "gpu": 0

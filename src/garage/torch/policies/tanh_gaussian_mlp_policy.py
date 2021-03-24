@@ -70,7 +70,9 @@ class TanhGaussianMLPPolicy(StochasticPolicy):
         super().__init__(env_spec, name='TanhGaussianPolicy')
 
         self._obs_dim = env_spec.observation_space.flat_dim
-        self._action_dim = env_spec.action_space.flat_dim
+        # TODO HUGE HACK
+        #self._action_dim = env_spec.action_space.flat_dim
+        self._action_dim = 1
 
         self._cnn_encoder = cnn_encoder
         if self._cnn_encoder is not None:

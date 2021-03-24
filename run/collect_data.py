@@ -101,6 +101,7 @@ def main(config, name, gpu, debug, overwrite):
             print(f'Collecting from policy: {policy}')
             # set min buffer size to num_collect in order to collect in a single epoch
             algo = DataCollector(policy, replay_buffer, steps_per_epoch=1, max_path_length=500, min_buffer_size=num_collect // len(policies), image=image)
+            algo.to()
 
             runner.setup(algo=algo, env=env, sampler_cls=LocalSampler)
             # every epoch, and every step per epoch, max(batch_size, traj_length) samples will be collected

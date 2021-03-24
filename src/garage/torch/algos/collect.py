@@ -1,4 +1,5 @@
 from garage.np.algos import RLAlgorithm
+from garage.torch import dict_np_to_torch, global_device
 
 
 class DataCollector(RLAlgorithm):
@@ -42,3 +43,13 @@ class DataCollector(RLAlgorithm):
 
             runner.step_itr += 1
 
+    def to(self, device=None):
+        """Put all the networks within the model on device.
+
+        Args:
+            device (str): ID of GPU or CPU.
+
+        """
+        if device is None:
+            device = global_device()
+            self.policy.to(device)

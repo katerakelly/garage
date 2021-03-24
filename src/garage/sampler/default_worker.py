@@ -116,6 +116,14 @@ class DefaultWorker(Worker):
         """
         if self._path_length < self._max_path_length:
             a, agent_info = self.agent.get_action(self._prev_obs)
+            # TODO HUGE HACK!! only do this to collect discrete actions
+            # from Gaussian policy for catcher env!!
+            if a < 0.33:
+                a = np.array([1, 0, 0])
+            elif a > 0.33 and a < 0.66:
+                a = np.array([0, 1, 0])
+            else:
+                a = np.array([0, 0, 1])
             next_o, r, d, env_info = self.env.step(a)
             self._observations.append(self._prev_obs)
             self._rewards.append(r)
