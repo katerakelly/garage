@@ -30,7 +30,8 @@ from garage.misc.exp_util import make_env, make_exp_name
 @click.option('--seed', default=1)
 @click.option('--debug', is_flag=True)
 @click.option('--overwrite', is_flag=True)
-def main(config, name, gpu, seed, debug, overwrite):
+@click.option('--snapshot', is_flag=True)
+def main(config, name, gpu, seed, debug, overwrite, snapshot):
     with open(os.path.join(config)) as f:
         variant = json.load(f)
     variant['gpu'] = gpu
@@ -39,7 +40,8 @@ def main(config, name, gpu, seed, debug, overwrite):
     name = f'rl/{name}'
     if debug:
         overwrite = True # always allow overwriting on a debug exp
-    @wrap_experiment(prefix=variant['env'], name=name, snapshot_mode='none', archive_launch_repo=False, use_existing_dir=overwrite)
+    snapshot_mode = 'last' if snapshot else 'none'
+    @wrap_experiment(prefix=variant['env'], name=name, snapshot_mode=snapshot_mode, archive_launch_repo=False, use_existing_dir=overwrite)
     def sac_batch(ctxt, variant):
         """Set up environment and algorithm and run the task.
 
